@@ -9,6 +9,10 @@ type BasicResponseInfo struct {
 	ExtraErrorData any    `json:"extra_error_data,omitempty"`
 }
 
+func SuccResponseInfo() BasicResponseInfo {
+	return BasicResponseInfo{SuccessStates: true}
+}
+
 func FromGeneralError(generalErr *define.GeneralError) BasicResponseInfo {
 	if generalErr == nil {
 		return BasicResponseInfo{SuccessStates: true}
@@ -19,4 +23,8 @@ func FromGeneralError(generalErr *define.GeneralError) BasicResponseInfo {
 		PublicErrorMsg: generalErr.GetPublicMsg(),
 		ExtraErrorData: generalErr.GetExtraData(),
 	}
+}
+
+type NormalTransaction struct {
+	TransactionUUID string `json:"transaction_uuid"`
 }

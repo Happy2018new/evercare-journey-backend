@@ -40,35 +40,35 @@ func NewUserHandle() *UserHandle {
 	return new(UserHandle)
 }
 
-func (u *UserHandle) CreateUser(tx *gorm.DB, user define.UserData) *define.GeneralError {
-	var temp define.UserData
+func (u *UserHandle) CreateUser(tx *gorm.DB, accountPhone string) (user define.UserData, generalErr *define.GeneralError) {
+	user = define.MakeNewUser(accountPhone, define.UserPermissionDefault)
 
-	result := tx.Create(&user)
-	if result.Error == nil {
+	err := tx.Transaction(func(tx *gorm.DB) error {
+		if result := tx.Create(&user); result.Error != nil {
+			return result.Error
+		}
+		if err := u.UpdateLoginToken(tx, user.UserIdentity, user.SessionInfo.LoginToken); err != nil {
+			return err
+		}
+		if err := u.ExtendSession(tx, user.UserIdentity); err != nil {
+			return err
+		}
 		return nil
+	})
+	if err == nil {
+		return user, nil
 	}
-	if !errors.Is(result.Error, gorm.ErrDuplicatedKey) {
-		return define.NewGeneralError(result.Error, "CreateUser", "创建用户时发生未知错误")
+	if generalErr, ok := err.(*define.GeneralError); ok {
+		return define.UserData{}, generalErr.AppendSource("CreateUser")
 	}
-
-	result = tx.
-		Select("account_name", "account_phone").
-		Where("account_name = ? OR account_phone = ?", user.AccountName, user.AccountPhone).
-		First(&temp)
-	if result.Error != nil {
-		return define.NewGeneralError(result.Error, "CreateUser", "创建用户时发生未知错误")
+	if !errors.Is(err, gorm.ErrDuplicatedKey) {
+		return define.UserData{}, define.NewGeneralError(err, "CreateUser", "创建用户时发生未知错误")
 	}
 
-	if temp.AccountName == user.AccountName {
-		return define.NewGeneralError(fmt.Errorf("Target account name is already exists"), "CreateUser", "用户名已存在")
-	}
-	if temp.AccountPhone == user.AccountPhone {
-		return define.NewGeneralError(fmt.Errorf("Target phone number is already used"), "CreateUser", "手机号已存在")
-	}
-	return define.NewGeneralError(
-		fmt.Errorf("Account name or phone number is already used"),
+	return define.UserData{}, define.NewGeneralError(
+		fmt.Errorf("Target phone number is already used"),
 		"CreateUser",
-		"用户名或手机号已存在",
+		"目标手机号已被注册",
 	)
 }
 
