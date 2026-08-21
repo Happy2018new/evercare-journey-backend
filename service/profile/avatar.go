@@ -70,7 +70,7 @@ func handleAvatarUpload(c *gin.Context, request AvatarUploadRequest) {
 	}
 
 	avatarItemID := uuid.NewString()
-	if err = environment.DB.ResourceHandle().SaveResource(handle.ResourceTypeNameUserAvatar, avatarItemID, pngData); err != nil {
+	if err = environment.DB.ResourceHandle().SaveResource(handle.ResourceTypeUserAvatar, avatarItemID, pngData); err != nil {
 		c.JSON(http.StatusOK, AvatarUploadResponse{
 			BasicResponseInfo: general.FromGeneralError(
 				define.NewGeneralError(err, "HandleAvatarUpload", "保存头像图片失败"),

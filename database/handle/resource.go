@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	ResourceTypeNameUserAvatar = "USER_AVATAR"
+	ResourceTypeUserAvatar = "USER_AVATAR"
 )
 
 type ResourceHandle struct {
