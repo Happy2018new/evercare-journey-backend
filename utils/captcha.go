@@ -33,6 +33,85 @@ var (
 	rotateImgCaptcha rotate.Captcha
 )
 
+type Dot [2]int
+
+func NewDot(x int, y int) Dot {
+	return Dot{x, y}
+}
+
+func (d Dot) X() int {
+	return d[0]
+}
+
+func (d Dot) Y() int {
+	return d[1]
+}
+
+func MakeTextCaptcha() (data click.CaptchaData, err error) {
+	switch rand.Intn(4) {
+	case 0:
+		data, err = clickTextCaptchaV1.Generate()
+	case 1:
+		data, err = clickTextCaptchaV2.Generate()
+	case 2:
+		data, err = clickTextCaptchaV3.Generate()
+	case 3:
+		data, err = clickTextCaptchaV4.Generate()
+	}
+	if err != nil {
+		return nil, fmt.Errorf("MakeTextCaptcha: %w", err)
+	}
+	return
+}
+
+func MakeSlideCaptcha() (data slide.CaptchaData, isDrop bool, err error) {
+	switch rand.Intn(2) {
+	case 0:
+		data, err = slideTileCaptcha.Generate()
+	case 1:
+		data, err = slideDropCaptcha.Generate()
+		isDrop = true
+	}
+	if err != nil {
+		return nil, false, fmt.Errorf("MakeSlideCaptcha: %w", err)
+	}
+	return
+}
+
+func MakeRotateCaptcha() (data rotate.CaptchaData, err error) {
+	data, err = rotateImgCaptcha.Generate()
+	if err != nil {
+		return nil, fmt.Errorf("MakeRotateCaptcha: %w", err)
+	}
+	return
+}
+
+func ValidateTextCaptcha(captcha click.CaptchaData, answer []Dot) bool {
+	dots := captcha.GetData()
+
+	if len(dots) != len(answer) {
+		return false
+	}
+	for index := range dots {
+		src, dst := dots[index], answer[index]
+		if !click.Validate(dst.X(), dst.Y(), src.X, src.Y, src.Width, src.Height, PaddingValidateTextCaptcha) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func ValidateSlideCaptcha(captcha slide.CaptchaData, answer Dot) bool {
+	block := captcha.GetData()
+	return slide.Validate(answer.X(), answer.Y(), block.X, block.Y, PaddingValidateSlideCaptcha)
+}
+
+func ValidateRotateCaptcha(captcha rotate.CaptchaData, answer int) bool {
+	block := captcha.GetData()
+	return rotate.Validate(answer, block.Angle, PaddingValidateRotateCaptcha)
+}
+
 func init() {
 	fonts, err := fzshengsksjw.GetFont()
 	if err != nil {
@@ -122,69 +201,4 @@ func init() {
 		builder.SetResources(rotate.WithImages(imgs))
 		rotateImgCaptcha = builder.Make()
 	}
-}
-
-func MakeTextCaptcha() (data click.CaptchaData, err error) {
-	switch rand.Intn(4) {
-	case 0:
-		data, err = clickTextCaptchaV1.Generate()
-	case 1:
-		data, err = clickTextCaptchaV2.Generate()
-	case 2:
-		data, err = clickTextCaptchaV3.Generate()
-	case 3:
-		data, err = clickTextCaptchaV4.Generate()
-	}
-	if err != nil {
-		return nil, fmt.Errorf("MakeTextCaptcha: %w", err)
-	}
-	return
-}
-
-func MakeSlideCaptcha() (data slide.CaptchaData, isDrop bool, err error) {
-	switch rand.Intn(2) {
-	case 0:
-		data, err = slideTileCaptcha.Generate()
-	case 1:
-		data, err = slideDropCaptcha.Generate()
-		isDrop = true
-	}
-	if err != nil {
-		return nil, false, fmt.Errorf("MakeSlideCaptcha: %w", err)
-	}
-	return
-}
-
-func MakeRotateCaptcha() (data rotate.CaptchaData, err error) {
-	data, err = rotateImgCaptcha.Generate()
-	if err != nil {
-		return nil, fmt.Errorf("MakeRotateCaptcha: %w", err)
-	}
-	return
-}
-
-func ValidateTextCaptcha(captcha click.CaptchaData, answer []Dot) bool {
-	dots := captcha.GetData()
-
-	if len(dots) != len(answer) {
-		return false
-	}
-	for index := range dots {
-		src, dst := dots[index], answer[index]
-		if !click.Validate(dst.X(), dst.Y(), src.X, src.Y, src.Width, src.Height, PaddingValidateTextCaptcha) {
-			return false
-		}
-	}
-
-	return true
-}
-
-func ValidateSlideCaptcha(captcha slide.CaptchaData, answer Dot) bool {
-	block := captcha.GetData()
-	return slide.Validate(answer.X(), answer.Y(), block.X, block.Y, PaddingValidateSlideCaptcha)
-}
-
-func ValidateRotateCaptcha(captcha rotate.CaptchaData, answer int) bool {
-	block := captcha.GetData()
-	return rotate.Validate(answer, block.Angle, PaddingValidateRotateCaptcha)
 }

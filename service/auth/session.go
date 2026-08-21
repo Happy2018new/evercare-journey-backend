@@ -8,11 +8,12 @@ import (
 	"github.com/Happy2018new/evercare-journey-backend/database/define"
 	"github.com/Happy2018new/evercare-journey-backend/database/handle"
 	"github.com/Happy2018new/evercare-journey-backend/environment"
+	"github.com/Happy2018new/evercare-journey-backend/service/general"
 	"github.com/google/uuid"
 	"github.com/patrickmn/go-cache"
 )
 
-// map[UserIdentity]tokenWithExpireTime
+// map[UserIdentity]define.UserData
 var cachedSessionInfo = cache.New(time.Minute*30, time.Minute*5)
 
 const (
@@ -25,35 +26,26 @@ const (
 	ValidateSessionStatusUnknownError = 255
 )
 
-type TokenWithExpireTime struct {
-	LoginToken     string
-	ExpireUnixTime int64
-}
-
-func LoadLoginToken(userIdentity string, reload bool) (loginToken TokenWithExpireTime, found bool, generalErr *define.GeneralError) {
+func LoadUser(userIdentity string, reload bool) (user *define.UserData, found bool, generalErr *define.GeneralError) {
 	db := environment.DB.Database()
 	userHandle := environment.DB.UserHandle()
 
 	if !reload {
 		if val, ok := cachedSessionInfo.Get(userIdentity); ok {
-			return val.(TokenWithExpireTime), true, nil
+			return val.(*define.UserData), true, nil
 		}
 	}
 
-	user, found, generalErr := userHandle.QueryUser(db, handle.QueryUserActionSearchByUserIdentity, userIdentity)
+	result, found, generalErr := userHandle.QueryUser(db, handle.QueryUserActionSearchByUserIdentity, userIdentity)
 	if generalErr != nil {
-		return loginToken, false, generalErr.AppendSource("LoadLoginToken")
+		return nil, false, generalErr.AppendSource("LoadUser")
 	}
 	if !found {
-		return loginToken, false, nil
+		return nil, false, nil
 	}
 
-	loginToken = TokenWithExpireTime{
-		LoginToken:     user.SessionInfo.LoginToken,
-		ExpireUnixTime: user.SessionInfo.ExpireUnixTime,
-	}
-	cachedSessionInfo.Set(userIdentity, loginToken, cache.DefaultExpiration)
-	return loginToken, true, nil
+	cachedSessionInfo.Set(userIdentity, &result, cache.DefaultExpiration)
+	return &result, true, nil
 }
 
 func UpdateLoginToken(userIdentity string, newToken string) *define.GeneralError {
@@ -63,7 +55,7 @@ func UpdateLoginToken(userIdentity string, newToken string) *define.GeneralError
 	if generalErr := userHandle.UpdateLoginToken(db, userIdentity, newToken); generalErr != nil {
 		return generalErr.AppendSource("UpdateLoginToken")
 	}
-	if _, _, generalErr := LoadLoginToken(userIdentity, true); generalErr != nil {
+	if _, _, generalErr := LoadUser(userIdentity, true); generalErr != nil {
 		return generalErr.AppendSource("UpdateLoginToken")
 	}
 
@@ -77,15 +69,15 @@ func ExtendSession(userIdentity string) *define.GeneralError {
 	if generalErr := userHandle.ExtendSession(db, userIdentity); generalErr != nil {
 		return generalErr.AppendSource("ExtendSession")
 	}
-	if _, _, generalErr := LoadLoginToken(userIdentity, true); generalErr != nil {
+	if _, _, generalErr := LoadUser(userIdentity, true); generalErr != nil {
 		return generalErr.AppendSource("ExtendSession")
 	}
 
 	return nil
 }
 
-func ValidateSession(userIdentity string, salt string, token string) (status uint8, generalErr *define.GeneralError) {
-	parsedSalt, err := uuid.Parse(salt)
+func ValidateSession(session general.BasicSessionInfo) (status uint8, generalErr *define.GeneralError) {
+	parsedSalt, err := uuid.Parse(session.RandomSalt)
 	if err != nil {
 		return ValidateSessionStatusInvalidSalt, nil
 	}
@@ -93,7 +85,7 @@ func ValidateSession(userIdentity string, salt string, token string) (status uin
 		return ValidateSessionStatusSaltNotSafe, nil
 	}
 
-	loginToken, found, generalErr := LoadLoginToken(userIdentity, false)
+	user, found, generalErr := LoadUser(session.UserIdentity, false)
 	if generalErr != nil {
 		return ValidateSessionStatusUnknownError, generalErr.AppendSource("ValidateSession")
 	}
@@ -101,17 +93,17 @@ func ValidateSession(userIdentity string, salt string, token string) (status uin
 		return ValidateSessionStatusUserNotFound, nil
 	}
 
-	checksum := sha512.Sum512([]byte(loginToken.LoginToken))
+	checksum := sha512.Sum512([]byte(user.SessionInfo.LoginToken))
 	checksum = sha512.Sum512(
 		append(
 			[]byte(hex.EncodeToString(checksum[:])),
-			[]byte(salt)...,
+			[]byte(session.RandomSalt)...,
 		),
 	)
-	if hex.EncodeToString(checksum[:]) != token {
+	if hex.EncodeToString(checksum[:]) != session.EncryptedToken {
 		return ValidateSessionStatusTokenInvalid, nil
 	}
-	if time.Now().Unix() > loginToken.ExpireUnixTime {
+	if time.Now().Unix() > user.SessionInfo.ExpireUnixTime {
 		return ValidateSessionStatusTokenExpired, nil
 	}
 

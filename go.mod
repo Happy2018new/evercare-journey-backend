@@ -3,9 +3,12 @@ module github.com/Happy2018new/evercare-journey-backend
 go 1.26
 
 require (
+	github.com/andybalholm/brotli v1.2.2
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/wenlng/go-captcha-assets v1.0.7
 	github.com/wenlng/go-captcha/v2 v2.0.5
+	go.etcd.io/bbolt v1.5.0
+	golang.org/x/image v0.45.0
 	gorm.io/gorm v1.31.2
 )
 
@@ -35,7 +38,6 @@ require (
 	go.mongodb.org/mongo-driver/v2 v2.5.0 // indirect
 	golang.org/x/arch v0.22.0 // indirect
 	golang.org/x/crypto v0.48.0 // indirect
-	golang.org/x/image v0.45.0 // indirect
 	golang.org/x/net v0.51.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect

@@ -40,8 +40,8 @@ func NewUserHandle() *UserHandle {
 	return new(UserHandle)
 }
 
-func (u *UserHandle) CreateUser(tx *gorm.DB, accountPhone string) (user define.UserData, generalErr *define.GeneralError) {
-	user = define.MakeNewUser(accountPhone, define.UserPermissionDefault)
+func (u *UserHandle) CreateUser(tx *gorm.DB, accountPhone string) (userIdentity string, loginToken string, generalErr *define.GeneralError) {
+	user := define.MakeNewUser(accountPhone, define.UserPermissionDefault)
 
 	err := tx.Transaction(func(tx *gorm.DB) error {
 		if result := tx.Create(&user); result.Error != nil {
@@ -56,16 +56,16 @@ func (u *UserHandle) CreateUser(tx *gorm.DB, accountPhone string) (user define.U
 		return nil
 	})
 	if err == nil {
-		return user, nil
+		return user.UserIdentity, user.SessionInfo.LoginToken, nil
 	}
 	if generalErr, ok := err.(*define.GeneralError); ok {
-		return define.UserData{}, generalErr.AppendSource("CreateUser")
+		return "", "", generalErr.AppendSource("CreateUser")
 	}
 	if !errors.Is(err, gorm.ErrDuplicatedKey) {
-		return define.UserData{}, define.NewGeneralError(err, "CreateUser", "创建用户时发生未知错误")
+		return "", "", define.NewGeneralError(err, "CreateUser", "创建用户时发生未知错误")
 	}
 
-	return define.UserData{}, define.NewGeneralError(
+	return "", "", define.NewGeneralError(
 		fmt.Errorf("Target phone number is already used"),
 		"CreateUser",
 		"目标手机号已被注册",
@@ -88,7 +88,7 @@ func (u *UserHandle) QueryUser(tx *gorm.DB, action uint8, keyword any) (user def
 		tx = tx.Where("account_phone = ?", keyword)
 	default:
 		return user, false, define.NewGeneralError(
-			fmt.Errorf("unsupported action: %d", action),
+			fmt.Errorf("unsupported action %d", action),
 			"QueryUser",
 			"查询用户时发生未知错误",
 		)

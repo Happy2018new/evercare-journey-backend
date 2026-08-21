@@ -2,6 +2,8 @@ package define
 
 import (
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 )
@@ -13,6 +15,16 @@ const (
 	UserPermissionAdvance
 	UserPermissionAdmin
 	UserPermissionSystem
+)
+
+const (
+	UserGenderMan uint8 = iota
+	UserGenderWoman
+)
+
+const (
+	UserMinAge = 0
+	UserMaxAge = 150
 )
 
 type UserData struct {
@@ -48,4 +60,18 @@ func MakeNewUser(accountPhone string, permissionLevel uint8) UserData {
 			LoginToken: uuid.NewString(),
 		},
 	}
+}
+
+func IsValidAccountName(name string) (valid bool, reason string) {
+	length := utf8.RuneCountInString(name)
+	if length < 3 || length > 14 {
+		return false, "用户名长度应在 3 到 14 个字符之间"
+	}
+	for _, char := range name {
+		if unicode.IsLetter(char) || unicode.IsDigit(char) || char == '_' {
+			continue
+		}
+		return false, "用户名只能包含字母、数字和下划线"
+	}
+	return true, ""
 }

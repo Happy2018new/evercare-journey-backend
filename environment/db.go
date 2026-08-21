@@ -2,6 +2,7 @@ package environment
 
 import (
 	"github.com/Happy2018new/evercare-journey-backend/database/handle"
+	"go.etcd.io/bbolt"
 	"gorm.io/gorm"
 )
 
@@ -15,14 +16,16 @@ const (
 )
 
 type WrappedDatabase struct {
-	database   *gorm.DB
-	userHandle *handle.UserHandle
+	database       *gorm.DB
+	userHandle     *handle.UserHandle
+	resourceHandle *handle.ResourceHandle
 }
 
-func NewWrappedDatabase(db *gorm.DB) *WrappedDatabase {
+func NewWrappedDatabase(mysql *gorm.DB, bbolt *bbolt.DB) *WrappedDatabase {
 	return &WrappedDatabase{
-		database:   db,
-		userHandle: handle.NewUserHandle(),
+		database:       mysql,
+		userHandle:     handle.NewUserHandle(),
+		resourceHandle: handle.NewResourceHandle(bbolt),
 	}
 }
 
@@ -32,4 +35,8 @@ func (w *WrappedDatabase) Database() *gorm.DB {
 
 func (w *WrappedDatabase) UserHandle() *handle.UserHandle {
 	return w.userHandle
+}
+
+func (w *WrappedDatabase) ResourceHandle() *handle.ResourceHandle {
+	return w.resourceHandle
 }
