@@ -97,7 +97,7 @@ func ValidateSession(session general.BasicSessionInfo) (status uint8, generalErr
 	checksum = sha512.Sum512(
 		append(
 			[]byte(hex.EncodeToString(checksum[:])),
-			[]byte(session.RandomSalt)...,
+			[]byte(parsedSalt.String())...,
 		),
 	)
 	if hex.EncodeToString(checksum[:]) != session.EncryptedToken {
