@@ -5,8 +5,8 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/Happy2018new/evercare-journey-backed/database/define"
-	"github.com/Happy2018new/evercare-journey-backed/utils"
+	"github.com/Happy2018new/evercare-journey-backend/database/define"
+	"github.com/Happy2018new/evercare-journey-backend/utils"
 	"github.com/google/uuid"
 	"github.com/patrickmn/go-cache"
 	"github.com/wenlng/go-captcha/v2/click"

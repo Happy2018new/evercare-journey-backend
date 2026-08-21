@@ -1,7 +1,7 @@
 package environment
 
 import (
-	"github.com/Happy2018new/evercare-journey-backed/database/handle"
+	"github.com/Happy2018new/evercare-journey-backend/database/handle"
 	"gorm.io/gorm"
 )
 

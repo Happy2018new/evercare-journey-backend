@@ -1,6 +1,6 @@
 package general
 
-import "github.com/Happy2018new/evercare-journey-backed/database/define"
+import "github.com/Happy2018new/evercare-journey-backend/database/define"
 
 type BasicResponseInfo struct {
 	SuccessStates  bool   `json:"success_states"`

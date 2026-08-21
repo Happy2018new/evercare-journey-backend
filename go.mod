@@ -1,4 +1,4 @@
-module github.com/Happy2018new/evercare-journey-backed
+module github.com/Happy2018new/evercare-journey-backend
 
 go 1.26
 

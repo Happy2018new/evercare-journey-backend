@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Happy2018new/evercare-journey-backed/database/define"
-	"github.com/Happy2018new/evercare-journey-backed/database/handle"
-	"github.com/Happy2018new/evercare-journey-backed/environment"
-	"github.com/Happy2018new/evercare-journey-backed/service/general"
-	"github.com/Happy2018new/evercare-journey-backed/utils"
+	"github.com/Happy2018new/evercare-journey-backend/database/define"
+	"github.com/Happy2018new/evercare-journey-backend/database/handle"
+	"github.com/Happy2018new/evercare-journey-backend/environment"
+	"github.com/Happy2018new/evercare-journey-backend/service/general"
+	"github.com/Happy2018new/evercare-journey-backend/utils"
 	"github.com/gin-gonic/gin"
 )
 

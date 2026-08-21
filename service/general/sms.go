@@ -6,7 +6,7 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/Happy2018new/evercare-journey-backed/database/define"
+	"github.com/Happy2018new/evercare-journey-backend/database/define"
 	"github.com/patrickmn/go-cache"
 )
 

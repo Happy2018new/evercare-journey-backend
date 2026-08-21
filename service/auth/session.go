@@ -5,9 +5,9 @@ import (
 	"encoding/hex"
 	"time"
 
-	"github.com/Happy2018new/evercare-journey-backed/database/define"
-	"github.com/Happy2018new/evercare-journey-backed/database/handle"
-	"github.com/Happy2018new/evercare-journey-backed/environment"
+	"github.com/Happy2018new/evercare-journey-backend/database/define"
+	"github.com/Happy2018new/evercare-journey-backend/database/handle"
+	"github.com/Happy2018new/evercare-journey-backend/environment"
 	"github.com/google/uuid"
 	"github.com/patrickmn/go-cache"
 )

@@ -8,7 +8,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/Happy2018new/evercare-journey-backed/environment"
+	"github.com/Happy2018new/evercare-journey-backend/environment"
 )
 
 const SmsApiEndPoint = "https://push.spug.cc/sms"

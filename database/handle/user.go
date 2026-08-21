@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	define "github.com/Happy2018new/evercare-journey-backed/database/define"
+	define "github.com/Happy2018new/evercare-journey-backend/database/define"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
