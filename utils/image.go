@@ -24,15 +24,6 @@ func ImageFromBytes(data []byte) (image.Image, error) {
 	return decodedImage, nil
 }
 
-// ImageConfigFromBytes reads an image's dimensions without decoding its pixels.
-func ImageConfigFromBytes(data []byte) (image.Config, error) {
-	config, _, err := image.DecodeConfig(bytes.NewReader(data))
-	if err != nil {
-		return image.Config{}, err
-	}
-	return config, nil
-}
-
 // ImageToPNG encodes source as PNG data.
 func ImageToPNG(source image.Image) ([]byte, error) {
 	var buffer bytes.Buffer
@@ -42,9 +33,9 @@ func ImageToPNG(source image.Image) ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
-// ResizeImageTo256 scales source to an image with exactly 256 by 256 pixels.
-func ResizeImageTo256(src image.Image) (dst *image.RGBA) {
-	dst = image.NewRGBA(image.Rect(0, 0, 256, 256))
+// ResizeImage scales source to an image with exactly size*size pixels.
+func ResizeImage(src image.Image, size int) (dst *image.RGBA) {
+	dst = image.NewRGBA(image.Rect(0, 0, size, size))
 	xdraw.CatmullRom.Scale(dst, dst.Bounds(), src, src.Bounds(), draw.Over, nil)
 	return dst
 }

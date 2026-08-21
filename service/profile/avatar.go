@@ -18,12 +18,15 @@ import (
 	"gorm.io/gorm"
 )
 
-const DefaultAvatarImageMaxSize = 5 * 1024 * 1024
+const (
+	DefaultAvatarImageMaxBytes = 5 * 1024 * 1024
+	DefaultAvatarImageMaxSize  = 256
+)
 
 func handleAvatarUpload(c *gin.Context, request AvatarUploadRequest) {
 	reader := io.LimitReader(
 		brotli.NewReader(bytes.NewReader(request.ImageData)),
-		DefaultAvatarImageMaxSize+1,
+		DefaultAvatarImageMaxBytes+1,
 	)
 	data, err := io.ReadAll(reader)
 	if err != nil {
@@ -34,13 +37,13 @@ func handleAvatarUpload(c *gin.Context, request AvatarUploadRequest) {
 		})
 		return
 	}
-	if len(data) == DefaultAvatarImageMaxSize+1 {
+	if len(data) == DefaultAvatarImageMaxBytes+1 {
 		c.JSON(http.StatusOK, AvatarUploadResponse{
 			BasicResponseInfo: general.FromGeneralError(
 				define.NewGeneralError(
-					fmt.Errorf("Uploaded avatar exceeds %d bytes after decompress", DefaultAvatarImageMaxSize),
+					fmt.Errorf("Uploaded avatar exceeds %d bytes after decompress", DefaultAvatarImageMaxBytes),
 					"HandleAvatarUpload",
-					fmt.Sprintf("上传的头像图片不得超过 %d MB", DefaultAvatarImageMaxSize/1024/1024),
+					fmt.Sprintf("上传的头像图片不得超过 %d MB", DefaultAvatarImageMaxBytes/1024/1024),
 				),
 			),
 		})
@@ -56,7 +59,7 @@ func handleAvatarUpload(c *gin.Context, request AvatarUploadRequest) {
 		})
 		return
 	}
-	pngData, err := utils.ImageToPNG(utils.ResizeImageTo256(source))
+	pngData, err := utils.ImageToPNG(utils.ResizeImage(source, DefaultAvatarImageMaxSize))
 	if err != nil {
 		c.JSON(http.StatusOK, AvatarUploadResponse{
 			BasicResponseInfo: general.FromGeneralError(
