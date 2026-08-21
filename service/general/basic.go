@@ -24,7 +24,3 @@ func FromGeneralError(generalErr *define.GeneralError) BasicResponseInfo {
 		ExtraErrorData: generalErr.GetExtraData(),
 	}
 }
-
-type NormalTransaction struct {
-	TransactionUUID string `json:"transaction_uuid"`
-}

@@ -5,14 +5,14 @@ import (
 	"gorm.io/gorm"
 )
 
+var DB *WrappedDatabase
+
 const (
 	DatabaseUser     = "username"
 	DatabasePassword = "password"
 	DatabaseHost     = "127.0.0.1:3306"
 	DatabaseName     = "dbname"
 )
-
-var DB *WrappedDatabase
 
 type WrappedDatabase struct {
 	database   *gorm.DB
