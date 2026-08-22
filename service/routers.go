@@ -39,6 +39,7 @@ func InitAndMakeRouter() *gin.Engine {
 	router.SetTrustedProxies(nil)
 
 	router.Use(
+		AllowCors(),
 		SecurityHeaders(),
 		LimitRequestBody(DefaultMaxRequestBodyBytes),
 	)

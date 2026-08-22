@@ -37,18 +37,14 @@ func (s *SMSTransaction) Context() any {
 	return s.ctx
 }
 
-func OpenNewSMSTransaction(accountPhone string, ctx any) (tran *SMSTransaction, generalErr *define.GeneralError) {
+func OpenNewSMSTransaction(accountPhone string, ctx any) (tran *SMSTransaction, useCached bool, generalErr *define.GeneralError) {
 	if _, ok := cachedSMSTransaction.Get(accountPhone); ok {
-		return nil, define.NewGeneralError(
-			"OpenNewSMSTransaction",
-			fmt.Errorf("SMS transaction for account phone %s is already exists", accountPhone),
-			define.LangKeyGeneralSmsTranBusyErr,
-		)
+		return tran, true, nil
 	}
 
 	verifyCode, err := rand.Int(rand.Reader, big.NewInt(1000000))
 	if err != nil {
-		return nil, define.NewGeneralError("OpenNewSMSTransaction", err, define.LangKeyGeneralSmsGenFailErr)
+		return nil, false, define.NewGeneralError("OpenNewSMSTransaction", err, define.LangKeyGeneralSmsGenFailErr)
 	}
 
 	tran = &SMSTransaction{
@@ -57,7 +53,7 @@ func OpenNewSMSTransaction(accountPhone string, ctx any) (tran *SMSTransaction, 
 		ctx:   ctx,
 	}
 	cachedSMSTransaction.Set(accountPhone, tran, cache.DefaultExpiration)
-	return tran, nil
+	return tran, false, nil
 }
 
 func DiscardSMSTransaction(accountPhone string) {

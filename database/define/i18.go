@@ -18,7 +18,6 @@ const (
 	LangKeyGeneralInvalidSession    = "error.general.invalid.session"         // 无效的用户登录状态，请重新启动程序再试
 	LangKeyGeneralNameInvalidLen    = "error.general.name.invalid.length"     // 用户名长度应在 3 到 14 个字符之间
 	LangKeyGeneralNameInvalidChar   = "error.general.name.invalid.character"  // 用户名只能包含字母、数字和下划线
-	LangKeyGeneralSmsTranBusyErr    = "error.general.sms.transaction.busy"    // 请勿多次在同一手机号上重复操作
 	LangKeyGeneralSmsGenFailErr     = "error.general.sms.generate.failed"     // 生成短信验证码时发生未知错误
 	LangKeyGeneralCaptchaGenFailErr = "error.general.captcha.generate.failed" // 生成图形验证码时发生未知错误
 
@@ -26,13 +25,11 @@ const (
 	LangKeyUserCreatePhoneUsedErr       = "error.user.create.phone.used"          // 目标手机号已被注册
 	LangKeyUserQueryUnknownErr          = "error.user.query.unknown"              // 查询用户时发生未知错误
 	LangKeyUserQueryNotFoundErr         = "error.user.query.not.found"            // 目标用户不存在
-	LangKeyUserQueryProfileNotFoundErr  = "error.user.query.profile.not.found"    // 用户资料未找到
 	LangKeyUserUpdateProfileFailErr     = "error.user.update.profile.failed"      // 更新用户资料失败
 	LangKeyUserUpdateLockSessionFailErr = "error.user.update.lock.session.failed" // 更新用户信息时锁定会话信息失败
 	LangKeyUserUpdateLockProfileFailErr = "error.user.update.lock.profile.failed" // 更新用户信息时锁定用户资料失败
 	LangKeyUserUpdateUnknownErr         = "error.user.update.unknown"             // 更新用户信息时发生未知错误
 	LangKeyUserUpdateLoginTokenErr      = "error.user.update.login.token"         // 更新登录令牌时发生未知错误
-	LangKeyUserSessionNotFoundErr       = "error.user.session.not.found"          // 用户会话未找到
 	LangKeyUserSessionExtendErr         = "error.user.session.extend"             // 更新会话过期时间时发生未知错误
 
 	LangKeyLoginPhoneLengthErr    = "error.login.phone.length"            // 手机号的长度必须为 %s 位

@@ -2,13 +2,17 @@ package define
 
 import (
 	"strings"
+	"time"
 	"unicode"
 	"unicode/utf8"
 
 	"github.com/google/uuid"
 )
 
-const UserPermissionDefault = UserPermissionNormal
+const (
+	UserPermissionDefault        = UserPermissionNormal
+	ExtendSessionDurationDefault = 30 * 24 * 60 * 60
+)
 
 const (
 	UserPermissionNormal uint8 = iota
@@ -34,7 +38,7 @@ type UserData struct {
 	UserIdentity    string      `gorm:"type:char(36);uniqueIndex"`
 	AccountName     string      `gorm:"type:varchar(14);uniqueIndex"`
 	AccountPhone    string      `gorm:"type:varchar(20);uniqueIndex"`
-	PermissionLevel uint8       `gorm:"type:tinyint"`
+	PermissionLevel uint8       `gorm:"type:tinyint unsigned"`
 	SessionInfo     UserSession `gorm:"foreignKey:UserUniqueID;references:UserUniqueID"`
 	ProfileData     UserProfile `gorm:"foreignKey:UserUniqueID;references:UserUniqueID"`
 }
@@ -42,8 +46,8 @@ type UserData struct {
 type UserProfile struct {
 	UserUniqueID uint32 `gorm:"primaryKey;type:int"`
 	AvatarItemID string `gorm:"type:varchar(36)"`
-	Gender       uint8  `gorm:"type:tinyint"`
-	Age          uint8  `gorm:"type:tinyint"`
+	Gender       uint8  `gorm:"type:tinyint unsigned"`
+	Age          uint8  `gorm:"type:tinyint unsigned"`
 }
 
 type UserSession struct {
@@ -59,7 +63,8 @@ func MakeNewUser(accountPhone string, permissionLevel uint8) UserData {
 		AccountPhone:    accountPhone,
 		PermissionLevel: permissionLevel,
 		SessionInfo: UserSession{
-			LoginToken: uuid.NewString(),
+			LoginToken:     uuid.NewString(),
+			ExpireUnixTime: time.Now().Unix() + ExtendSessionDurationDefault,
 		},
 		ProfileData: UserProfile{
 			Gender: UserGenderNotSet,

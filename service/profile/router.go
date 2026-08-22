@@ -34,7 +34,7 @@ type ProfileDataResponse struct {
 func HandleProfileData(c *gin.Context) {
 	var request ProfileDataRequest
 
-	err := c.Bind(&request)
+	err := c.ShouldBind(&request)
 	if err != nil {
 		c.JSON(http.StatusOK, ProfileDataResponse{
 			BasicResponseInfo: general.FromGeneralError(
@@ -85,7 +85,7 @@ func HandleProfileData(c *gin.Context) {
 
 const (
 	AvatarQueryActionGetChecksum uint8 = iota
-	AvatarQueryActionGetData
+	AvatarQueryActionGetImageData
 )
 
 type AvatarQueryRequest struct {
@@ -104,7 +104,7 @@ type AvatarQueryResponse struct {
 func HandleAvatarQuery(c *gin.Context) {
 	var request AvatarQueryRequest
 
-	err := c.Bind(&request)
+	err := c.ShouldBind(&request)
 	if err != nil {
 		c.JSON(http.StatusOK, AvatarQueryResponse{
 			BasicResponseInfo: general.FromGeneralError(
@@ -140,12 +140,13 @@ type AvatarUploadRequest struct {
 
 type AvatarUploadResponse struct {
 	general.BasicResponseInfo
+	Checksum string `json:"checksum"`
 }
 
 func HandleAvatarUpload(c *gin.Context) {
 	var request AvatarUploadRequest
 
-	err := c.Bind(&request)
+	err := c.ShouldBind(&request)
 	if err != nil {
 		c.JSON(http.StatusOK, AvatarUploadResponse{
 			BasicResponseInfo: general.FromGeneralError(

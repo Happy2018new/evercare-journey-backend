@@ -73,7 +73,7 @@ func handleFinishCaptcha(c *gin.Context, request UserLoginRequest) {
 		return
 	}
 
-	tran, generalErr := general.OpenNewSMSTransaction(
+	tran, useCached, generalErr := general.OpenNewSMSTransaction(
 		ctx.(UserLoginRequest).AccountPhone,
 		nil,
 	)
@@ -83,14 +83,17 @@ func handleFinishCaptcha(c *gin.Context, request UserLoginRequest) {
 		})
 		return
 	}
-	if err := utils.SendSMSVerifyCode(tran.AccountPhone(), tran.VerifyCode(), DefaultSmsExpireInMinutes); err != nil {
-		general.DiscardSMSTransaction(tran.AccountPhone())
-		c.JSON(http.StatusOK, UserLoginResponse{
-			BasicResponseInfo: general.FromGeneralError(
-				define.NewGeneralError("handleFinishCaptcha", err, define.LangKeyLoginSmsSendFailErr),
-			),
-		})
-		return
+	if !useCached {
+		fmt.Println(tran.VerifyCode())
+		if err := utils.SendSMSVerifyCode(tran.AccountPhone(), tran.VerifyCode(), DefaultSmsExpireInMinutes); err != nil {
+			general.DiscardSMSTransaction(tran.AccountPhone())
+			c.JSON(http.StatusOK, UserLoginResponse{
+				BasicResponseInfo: general.FromGeneralError(
+					define.NewGeneralError("handleFinishCaptcha", err, define.LangKeyLoginSmsSendFailErr),
+				),
+			})
+			return
+		}
 	}
 	c.JSON(http.StatusOK, UserLoginResponse{
 		BasicResponseInfo: general.SuccResponseInfo(),

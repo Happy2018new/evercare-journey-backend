@@ -43,7 +43,7 @@ type UserLoginResponse struct {
 func HandleLogin(c *gin.Context) {
 	var request UserLoginRequest
 
-	err := c.Bind(&request)
+	err := c.ShouldBind(&request)
 	if err != nil {
 		c.JSON(http.StatusOK, UserLoginResponse{
 			BasicResponseInfo: general.FromGeneralError(
@@ -88,7 +88,7 @@ type SessionCheckResponse struct {
 func HandleSessionCheck(c *gin.Context) {
 	var request SessionCheckRequest
 
-	err := c.Bind(&request)
+	err := c.ShouldBind(&request)
 	if err != nil {
 		c.JSON(http.StatusOK, SessionCheckResponse{
 			BasicResponseInfo: general.FromGeneralError(

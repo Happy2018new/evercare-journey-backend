@@ -8,6 +8,25 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// AllowCors handles the browser preflight required by the H5 client when it
+// posts JSON to the API from a different origin.
+func AllowCors() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		origin := c.GetHeader("Origin")
+		if origin != "" {
+			c.Header("Access-Control-Allow-Origin", origin)
+			c.Header("Access-Control-Allow-Methods", "POST, OPTIONS")
+			c.Header("Access-Control-Allow-Headers", "Content-Type")
+			c.Header("Vary", "Origin")
+		}
+		if c.Request.Method == http.MethodOptions {
+			c.AbortWithStatus(http.StatusNoContent)
+			return
+		}
+		c.Next()
+	}
+}
+
 // DefaultMaxRequestBodyBytes is the maximum accepted HTTP request body size.
 const DefaultMaxRequestBodyBytes int64 = 8 * 1024 * 1024
 

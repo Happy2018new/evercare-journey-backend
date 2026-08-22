@@ -55,7 +55,7 @@ func handleUpdateProfileExtraData(c *gin.Context, request ProfileDataRequest) {
 	}
 	switch {
 	case request.Age == define.UserAgeNotSet:
-	case request.Age < define.UserMinAge || request.Age > define.UserMaxAge:
+	case define.UserMinAge <= request.Age && request.Age <= define.UserMaxAge:
 	default:
 		c.JSON(http.StatusOK, ProfileDataResponse{
 			BasicResponseInfo: general.FromGeneralError(
@@ -83,9 +83,6 @@ func handleUpdateProfileExtraData(c *gin.Context, request ProfileDataRequest) {
 				})
 			if result.Error != nil {
 				return define.NewGeneralError("", result.Error, define.LangKeyUserUpdateProfileFailErr)
-			}
-			if result.RowsAffected == 0 {
-				return define.NewGeneralError("", fmt.Errorf("Should never happened"), define.LangKeyGeneralInvalidSession)
 			}
 			return nil
 		},
@@ -122,9 +119,6 @@ func handleUpdateProfileName(c *gin.Context, request ProfileDataRequest) {
 				UpdateColumn("account_name", request.Name)
 			if result.Error != nil {
 				return define.NewGeneralError("", result.Error, define.LangKeyUserUpdateProfileFailErr)
-			}
-			if result.RowsAffected == 0 {
-				return define.NewGeneralError("", fmt.Errorf("Should never happened"), define.LangKeyGeneralInvalidSession)
 			}
 			return nil
 		},

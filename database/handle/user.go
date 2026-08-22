@@ -9,8 +9,6 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-const ExtendSessionDurationDefault = 30 * 24 * 60 * 60
-
 const (
 	QueryUserActionSearchByUniqueID uint8 = iota
 	QueryUserActionSearchByUserIdentity
@@ -41,28 +39,17 @@ func NewUserHandle() *UserHandle {
 }
 
 func (u *UserHandle) CreateUser(tx *gorm.DB, accountPhone string) (userIdentity string, loginToken string, generalErr *define.GeneralError) {
-	user := define.MakeNewUser(accountPhone, define.UserPermissionDefault)
+	user := define.MakeNewUser(
+		accountPhone,
+		define.UserPermissionDefault,
+	)
 
-	err := tx.Transaction(func(tx *gorm.DB) error {
-		if result := tx.Create(&user); result.Error != nil {
-			return result.Error
-		}
-		if err := u.UpdateLoginToken(tx, user.UserIdentity, user.SessionInfo.LoginToken); err != nil {
-			return err
-		}
-		if err := u.ExtendSession(tx, user.UserIdentity); err != nil {
-			return err
-		}
-		return nil
-	})
-	if err == nil {
+	result := tx.Create(&user)
+	if result.Error == nil {
 		return user.UserIdentity, user.SessionInfo.LoginToken, nil
 	}
-	if generalErr, ok := err.(*define.GeneralError); ok {
-		return "", "", generalErr.AppendSource("CreateUser")
-	}
-	if !errors.Is(err, gorm.ErrDuplicatedKey) {
-		return "", "", define.NewGeneralError("CreateUser", err, define.LangKeyUserCreateUnknownErr)
+	if !errors.Is(result.Error, gorm.ErrDuplicatedKey) {
+		return "", "", define.NewGeneralError("CreateUser", result.Error, define.LangKeyUserCreateUnknownErr)
 	}
 
 	return "", "", define.NewGeneralError(
@@ -180,9 +167,6 @@ func (u *UserHandle) UpdateLoginToken(tx *gorm.DB, userIdentity string, newToken
 			if result.Error != nil {
 				return define.NewGeneralError("", result.Error, define.LangKeyUserUpdateLoginTokenErr)
 			}
-			if result.RowsAffected == 0 {
-				return define.NewGeneralError("", fmt.Errorf("User session not found"), define.LangKeyUserSessionNotFoundErr)
-			}
 			return nil
 		},
 	)
@@ -204,13 +188,10 @@ func (u *UserHandle) ExtendSession(tx *gorm.DB, userIdentity string) *define.Gen
 				Where("user_unique_id = ?", user.UserUniqueID).
 				UpdateColumn(
 					"expire_unix_time",
-					gorm.Expr("expire_unix_time + ?", ExtendSessionDurationDefault),
+					gorm.Expr("expire_unix_time + ?", define.ExtendSessionDurationDefault),
 				)
 			if result.Error != nil {
 				return define.NewGeneralError("", result.Error, define.LangKeyUserSessionExtendErr)
-			}
-			if result.RowsAffected == 0 {
-				return define.NewGeneralError("", fmt.Errorf("User session not found"), define.LangKeyUserSessionNotFoundErr)
 			}
 			return nil
 		},

@@ -38,6 +38,7 @@ type CaptchaRequest struct {
 	CaptchaType     uint8  `json:"captcha_type"`
 	MasterImage     string `json:"master_image"`
 	SecondImage     string `json:"second_image"`
+	SlideTilePosy   int    `json:"slide_tile_posy"`
 }
 
 type CaptchaResponse struct {
@@ -101,11 +102,11 @@ func ConsumeCaptchaTransaction(resp *CaptchaResponse) (status uint8, ctx any) {
 
 	switch tran.captchaType {
 	case CaptchaTypeClickText:
-		succ = utils.ValidateTextCaptcha(tran.captchaData.(click.CaptData), resp.TextCaptchaAnswer)
+		succ = utils.ValidateTextCaptcha(tran.captchaData.(click.CaptchaData), resp.TextCaptchaAnswer)
 	case CaptchaTypeSlideTile, CaptchaTypeSlideDrop:
-		succ = utils.ValidateSlideCaptcha(tran.captchaData.(slide.CaptData), resp.SlideCaptchaAnswer)
+		succ = utils.ValidateSlideCaptcha(tran.captchaData.(slide.CaptchaData), resp.SlideCaptchaAnswer)
 	case CaptchaTypeRotateImg:
-		succ = utils.ValidateRotateCaptcha(tran.captchaData.(rotate.CaptData), resp.RotateCaptchaAnswer)
+		succ = utils.ValidateRotateCaptcha(tran.captchaData.(rotate.CaptchaData), resp.RotateCaptchaAnswer)
 	}
 
 	DiscardCaptchaTransaction(resp.TransactionUUID)
@@ -154,14 +155,18 @@ func MakeCaptchaRequest(tran *CaptchaTransaction) (request *CaptchaRequest, err 
 
 	switch tran.CaptchaType() {
 	case CaptchaTypeClickText:
-		request.MasterImage, err = tran.captchaData.(click.CaptData).GetMasterImage().ToBase64()
-		request.SecondImage, err = tran.captchaData.(click.CaptData).GetThumbImage().ToBase64()
-	case CaptchaTypeSlideTile, CaptchaTypeSlideDrop:
-		request.MasterImage, err = tran.captchaData.(slide.CaptData).GetMasterImage().ToBase64()
-		request.SecondImage, err = tran.captchaData.(slide.CaptData).GetTileImage().ToBase64()
+		request.MasterImage, err = tran.captchaData.(click.CaptchaData).GetMasterImage().ToBase64()
+		request.SecondImage, err = tran.captchaData.(click.CaptchaData).GetThumbImage().ToBase64()
+	case CaptchaTypeSlideTile:
+		request.MasterImage, err = tran.captchaData.(slide.CaptchaData).GetMasterImage().ToBase64()
+		request.SecondImage, err = tran.captchaData.(slide.CaptchaData).GetTileImage().ToBase64()
+		request.SlideTilePosy = tran.captchaData.(slide.CaptchaData).GetData().Y
+	case CaptchaTypeSlideDrop:
+		request.MasterImage, err = tran.captchaData.(slide.CaptchaData).GetMasterImage().ToBase64()
+		request.SecondImage, err = tran.captchaData.(slide.CaptchaData).GetTileImage().ToBase64()
 	case CaptchaTypeRotateImg:
-		request.MasterImage, err = tran.captchaData.(rotate.CaptData).GetMasterImage().ToBase64()
-		request.SecondImage, err = tran.captchaData.(rotate.CaptData).GetThumbImage().ToBase64()
+		request.MasterImage, err = tran.captchaData.(rotate.CaptchaData).GetMasterImage().ToBase64()
+		request.SecondImage, err = tran.captchaData.(rotate.CaptchaData).GetThumbImage().ToBase64()
 	}
 	if err != nil {
 		return nil, fmt.Errorf("MakeCaptchaRequest: %w", err)
