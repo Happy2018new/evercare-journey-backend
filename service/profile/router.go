@@ -83,14 +83,21 @@ func HandleProfileData(c *gin.Context) {
 	})
 }
 
+const (
+	AvatarQueryActionGetChecksum uint8 = iota
+	AvatarQueryActionGetData
+)
+
 type AvatarQueryRequest struct {
 	general.BasicSessionInfo
+	QueryAction       uint8  `json:"query_action"`
 	QueryUserIdentity string `json:"query_user_identity"`
 }
 
 type AvatarQueryResponse struct {
 	general.BasicResponseInfo
 	AvatarSet bool   `json:"avatar_set"`
+	Checksum  string `json:"checksum"`
 	ImageData []byte `json:"image_data"`
 }
 

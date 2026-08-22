@@ -1,6 +1,8 @@
 package profile
 
 import (
+	"crypto/sha512"
+	"encoding/hex"
 	"fmt"
 	"net/http"
 
@@ -21,6 +23,9 @@ const (
 )
 
 func handleAvatarQuery(c *gin.Context, request AvatarQueryRequest) {
+	var result []byte
+	var err error
+
 	user, found, generalErr := environment.DB.UserHandle().QueryUser(
 		environment.DB.Database(),
 		handle.QueryUserActionSearchByUserIdentity,
@@ -44,20 +49,25 @@ func handleAvatarQuery(c *gin.Context, request AvatarQueryRequest) {
 		})
 		return
 	}
+	rawCheckSum := sha512.Sum512(pngData)
+	ansCheckSum := hex.EncodeToString(rawCheckSum[:])
 
-	result, err := utils.CompressBrotli(pngData)
-	if err != nil {
-		c.JSON(http.StatusOK, AvatarQueryResponse{
-			BasicResponseInfo: general.FromGeneralError(
-				define.NewGeneralError("handleAvatarQuery", err, define.LangKeyAvatarZipFailErr),
-			),
-		})
-		return
+	if request.QueryAction == AvatarQueryActionGetData {
+		result, err = utils.CompressBrotli(pngData)
+		if err != nil {
+			c.JSON(http.StatusOK, AvatarQueryResponse{
+				BasicResponseInfo: general.FromGeneralError(
+					define.NewGeneralError("handleAvatarGetImage", err, define.LangKeyAvatarZipFailErr),
+				),
+			})
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, AvatarQueryResponse{
 		BasicResponseInfo: general.SuccResponseInfo(),
 		AvatarSet:         true,
+		Checksum:          ansCheckSum,
 		ImageData:         result,
 	})
 }
@@ -154,9 +164,6 @@ func handleAvatarUpload(c *gin.Context, request AvatarUploadRequest) {
 				UpdateColumn("avatar_item_id", avatarItemID)
 			if result.Error != nil {
 				return define.NewGeneralError("", result.Error, define.LangKeyAvatarUpdateFailErr)
-			}
-			if result.RowsAffected == 0 {
-				return define.NewGeneralError("", fmt.Errorf("Profile data not found"), define.LangKeyUserQueryProfileNotFoundErr)
 			}
 
 			return nil
