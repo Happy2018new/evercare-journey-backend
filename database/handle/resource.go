@@ -41,13 +41,23 @@ func (r *ResourceHandle) SaveResource(typeName string, srcKey string, data []byt
 		if err != nil {
 			return err
 		}
-		if err = bucket.Put([]byte(srcKey), data); err != nil {
-			return err
+		return bucket.Put([]byte(srcKey), data)
+	})
+	if err != nil {
+		return fmt.Errorf("SaveResource: %w", err)
+	}
+	return nil
+}
+
+func (r *ResourceHandle) DeleteResource(typeName string, srcKey string) error {
+	err := r.db.Update(func(tx *bbolt.Tx) error {
+		if bucket := tx.Bucket([]byte(typeName)); bucket != nil {
+			return bucket.Delete([]byte(srcKey))
 		}
 		return nil
 	})
 	if err != nil {
-		return fmt.Errorf("SaveResource: %w", err)
+		return fmt.Errorf("DeleteResource: %w", err)
 	}
 	return nil
 }

@@ -39,6 +39,7 @@ const (
 	LangKeyLoginSmsSendFailErr    = "error.login.sms.send.failed"         // 发送短信验证码时出现未知错误
 	LangKeyLoginSmsTranExpiredErr = "error.login.sms.transaction.expired" // 短信验证码已过期，请重新登录
 
+	LangKeyAvatarZipFailErr      = "error.avatar.zip.failed"     // 压缩头像数据失败
 	LangKeyAvatarUnzipFailErr    = "error.avatar.unzip.failed"   // 解压头像数据失败
 	LangKeyAvatarReachMaxSizeErr = "error.avatar.reach.max.size" // 上传的头像图片不得超过 %s MB
 	LangKeyAvatarInvalidData     = "error.avatar.invalid.data"   // 头像图片格式无效

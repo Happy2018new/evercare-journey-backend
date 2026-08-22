@@ -1,9 +1,7 @@
 package profile
 
 import (
-	"bytes"
 	"fmt"
-	"io"
 	"net/http"
 
 	"github.com/Happy2018new/evercare-journey-backend/database/define"
@@ -12,7 +10,6 @@ import (
 	"github.com/Happy2018new/evercare-journey-backend/service/auth"
 	"github.com/Happy2018new/evercare-journey-backend/service/general"
 	"github.com/Happy2018new/evercare-journey-backend/utils"
-	"github.com/andybalholm/brotli"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -23,25 +20,63 @@ const (
 	DefaultAvatarImageMaxSize  = 256
 )
 
-func handleAvatarUpload(c *gin.Context, request AvatarUploadRequest) {
-	reader := io.LimitReader(
-		brotli.NewReader(bytes.NewReader(request.ImageData)),
-		DefaultAvatarImageMaxBytes+1,
+func handleAvatarQuery(c *gin.Context, request AvatarQueryRequest) {
+	user, found, generalErr := environment.DB.UserHandle().QueryUser(
+		environment.DB.Database(),
+		handle.QueryUserActionSearchByUserIdentity,
+		request.UserIdentity,
 	)
-	data, err := io.ReadAll(reader)
+	if generalErr != nil {
+		c.JSON(http.StatusOK, AvatarQueryResponse{
+			BasicResponseInfo: general.FromGeneralError(generalErr.AppendSource("handleAvatarQuery")),
+		})
+		return
+	}
+
+	pngData, found := environment.DB.ResourceHandle().LoadResource(
+		handle.ResourceTypeUserAvatar,
+		user.ProfileData.AvatarItemID,
+	)
+	if !found {
+		c.JSON(http.StatusOK, AvatarQueryResponse{
+			BasicResponseInfo: general.SuccResponseInfo(),
+			AvatarSet:         false,
+		})
+		return
+	}
+
+	result, err := utils.CompressBrotli(pngData)
 	if err != nil {
-		c.JSON(http.StatusOK, AvatarUploadResponse{
+		c.JSON(http.StatusOK, AvatarQueryResponse{
 			BasicResponseInfo: general.FromGeneralError(
-				define.NewGeneralError("HandleAvatarUpload", err, define.LangKeyAvatarUnzipFailErr),
+				define.NewGeneralError("handleAvatarQuery", err, define.LangKeyAvatarZipFailErr),
 			),
 		})
 		return
 	}
-	if len(data) == DefaultAvatarImageMaxBytes+1 {
+
+	c.JSON(http.StatusOK, AvatarQueryResponse{
+		BasicResponseInfo: general.SuccResponseInfo(),
+		AvatarSet:         true,
+		ImageData:         result,
+	})
+}
+
+func handleAvatarUpload(c *gin.Context, request AvatarUploadRequest) {
+	rawData, exceeded, err := utils.DecompressBrotli(request.ImageData, DefaultAvatarImageMaxBytes)
+	if err != nil {
+		c.JSON(http.StatusOK, AvatarUploadResponse{
+			BasicResponseInfo: general.FromGeneralError(
+				define.NewGeneralError("handleAvatarUpload", err, define.LangKeyAvatarUnzipFailErr),
+			),
+		})
+		return
+	}
+	if exceeded {
 		c.JSON(http.StatusOK, AvatarUploadResponse{
 			BasicResponseInfo: general.FromGeneralError(
 				define.NewGeneralError(
-					"HandleAvatarUpload",
+					"handleAvatarUpload",
 					fmt.Errorf("Uploaded avatar exceeds %d bytes after decompress", DefaultAvatarImageMaxBytes),
 					define.LangKeyAvatarReachMaxSizeErr,
 					fmt.Sprintf("%d", DefaultAvatarImageMaxBytes/1024/1024),
@@ -51,20 +86,20 @@ func handleAvatarUpload(c *gin.Context, request AvatarUploadRequest) {
 		return
 	}
 
-	source, err := utils.ImageFromBytes(data)
+	decoded, err := utils.ImageFromBytes(rawData)
 	if err != nil {
 		c.JSON(http.StatusOK, AvatarUploadResponse{
 			BasicResponseInfo: general.FromGeneralError(
-				define.NewGeneralError("HandleAvatarUpload", err, define.LangKeyAvatarInvalidData),
+				define.NewGeneralError("handleAvatarUpload", err, define.LangKeyAvatarInvalidData),
 			),
 		})
 		return
 	}
-	pngData, err := utils.ImageToPNG(utils.ResizeImage(source, DefaultAvatarImageMaxSize))
+	pngData, err := utils.ImageToPNG(utils.ResizeImage(decoded, DefaultAvatarImageMaxSize))
 	if err != nil {
 		c.JSON(http.StatusOK, AvatarUploadResponse{
 			BasicResponseInfo: general.FromGeneralError(
-				define.NewGeneralError("HandleAvatarUpload", err, define.LangKeyAvatarConvertFailErr),
+				define.NewGeneralError("handleAvatarUpload", err, define.LangKeyAvatarConvertFailErr),
 			),
 		})
 		return
@@ -74,7 +109,7 @@ func handleAvatarUpload(c *gin.Context, request AvatarUploadRequest) {
 	if err = environment.DB.ResourceHandle().SaveResource(handle.ResourceTypeUserAvatar, avatarItemID, pngData); err != nil {
 		c.JSON(http.StatusOK, AvatarUploadResponse{
 			BasicResponseInfo: general.FromGeneralError(
-				define.NewGeneralError("HandleAvatarUpload", err, define.LangKeyAvatarSaveFailErr),
+				define.NewGeneralError("handleAvatarUpload", err, define.LangKeyAvatarSaveFailErr),
 			),
 		})
 		return
@@ -100,7 +135,7 @@ func handleAvatarUpload(c *gin.Context, request AvatarUploadRequest) {
 	)
 	if generalErr != nil {
 		c.JSON(http.StatusOK, AvatarUploadResponse{
-			BasicResponseInfo: general.FromGeneralError(generalErr.AppendSource("HandleAvatarUpload")),
+			BasicResponseInfo: general.FromGeneralError(generalErr.AppendSource("handleAvatarUpload")),
 		})
 		return
 	}

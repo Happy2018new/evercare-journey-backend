@@ -83,6 +83,49 @@ func HandleProfileData(c *gin.Context) {
 	})
 }
 
+type AvatarQueryRequest struct {
+	general.BasicSessionInfo
+	QueryUserIdentity string `json:"query_user_identity"`
+}
+
+type AvatarQueryResponse struct {
+	general.BasicResponseInfo
+	AvatarSet bool   `json:"avatar_set"`
+	ImageData []byte `json:"image_data"`
+}
+
+func HandleAvatarQuery(c *gin.Context) {
+	var request AvatarQueryRequest
+
+	err := c.Bind(&request)
+	if err != nil {
+		c.JSON(http.StatusOK, AvatarQueryResponse{
+			BasicResponseInfo: general.FromGeneralError(
+				define.NewGeneralError("HandleAvatarQuery", err, define.LangKeyGeneralInvalidRequest),
+			),
+		})
+		return
+	}
+
+	status, generalErr := auth.ValidateSession(request.BasicSessionInfo)
+	if generalErr != nil {
+		c.JSON(http.StatusOK, AvatarQueryResponse{
+			BasicResponseInfo: general.FromGeneralError(generalErr.AppendSource("HandleAvatarQuery")),
+		})
+		return
+	}
+	if status != auth.ValidateSessionStatusValidSession {
+		c.JSON(http.StatusOK, AvatarQueryResponse{
+			BasicResponseInfo: general.FromGeneralError(
+				define.NewGeneralError("HandleAvatarQuery", fmt.Errorf("Failed to validate current session"), define.LangKeyGeneralInvalidSession),
+			),
+		})
+		return
+	}
+
+	handleAvatarQuery(c, request)
+}
+
 type AvatarUploadRequest struct {
 	general.BasicSessionInfo
 	ImageData []byte `json:"image_data"`
@@ -115,7 +158,7 @@ func HandleAvatarUpload(c *gin.Context) {
 	if status != auth.ValidateSessionStatusValidSession {
 		c.JSON(http.StatusOK, AvatarUploadResponse{
 			BasicResponseInfo: general.FromGeneralError(
-				define.NewGeneralError("HandleAvatarUpload", fmt.Errorf("failed to validate current session"), define.LangKeyGeneralInvalidSession),
+				define.NewGeneralError("HandleAvatarUpload", fmt.Errorf("Failed to validate current session"), define.LangKeyGeneralInvalidSession),
 			),
 		})
 		return
