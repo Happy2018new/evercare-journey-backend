@@ -23,6 +23,7 @@ func registerProfileProcessor(router *gin.Engine) {
 
 func InitAndMakeRouter() *gin.Engine {
 	router := gin.Default()
+	router.SetTrustedProxies(nil)
 
 	router.Use(
 		SecurityHeaders(),

@@ -34,16 +34,16 @@ type UserData struct {
 	UserIdentity    string      `gorm:"type:char(36);uniqueIndex"`
 	AccountName     string      `gorm:"type:varchar(14);uniqueIndex"`
 	AccountPhone    string      `gorm:"type:varchar(20);uniqueIndex"`
-	PermissionLevel uint8       `gorm:"type:int"`
+	PermissionLevel uint8       `gorm:"type:tinyint"`
 	SessionInfo     UserSession `gorm:"foreignKey:UserUniqueID;references:UserUniqueID"`
 	ProfileData     UserProfile `gorm:"foreignKey:UserUniqueID;references:UserUniqueID"`
 }
 
 type UserProfile struct {
 	UserUniqueID uint32 `gorm:"primaryKey;type:int"`
-	AvatarItemID string `gorm:"type:char(36)"`
-	Gender       uint8  `gorm:"type:int"`
-	Age          uint8  `gorm:"type:int"`
+	AvatarItemID string `gorm:"type:varchar(36)"`
+	Gender       uint8  `gorm:"type:tinyint"`
+	Age          uint8  `gorm:"type:tinyint"`
 }
 
 type UserSession struct {
