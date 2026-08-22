@@ -71,13 +71,13 @@ func MakeNewUser(accountPhone string, permissionLevel uint8) UserData {
 func IsValidAccountName(name string) (valid bool, reason string) {
 	length := utf8.RuneCountInString(name)
 	if length < 3 || length > 14 {
-		return false, "用户名长度应在 3 到 14 个字符之间"
+		return false, LangKeyGeneralNameInvalidLen
 	}
 	for _, char := range name {
 		if unicode.IsLetter(char) || unicode.IsDigit(char) || char == '_' {
 			continue
 		}
-		return false, "用户名只能包含字母、数字和下划线"
+		return false, LangKeyGeneralNameInvalidChar
 	}
 	return true, ""
 }

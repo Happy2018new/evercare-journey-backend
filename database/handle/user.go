@@ -62,13 +62,13 @@ func (u *UserHandle) CreateUser(tx *gorm.DB, accountPhone string) (userIdentity 
 		return "", "", generalErr.AppendSource("CreateUser")
 	}
 	if !errors.Is(err, gorm.ErrDuplicatedKey) {
-		return "", "", define.NewGeneralError(err, "CreateUser", "创建用户时发生未知错误")
+		return "", "", define.NewGeneralError("CreateUser", err, define.LangKeyUserCreateUnknownErr)
 	}
 
 	return "", "", define.NewGeneralError(
-		fmt.Errorf("Target phone number is already used"),
 		"CreateUser",
-		"目标手机号已被注册",
+		fmt.Errorf("Target phone number is already used"),
+		define.LangKeyUserCreatePhoneUsedErr,
 	)
 }
 
@@ -88,9 +88,9 @@ func (u *UserHandle) QueryUser(tx *gorm.DB, action uint8, keyword any) (user def
 		tx = tx.Where("account_phone = ?", keyword)
 	default:
 		return user, false, define.NewGeneralError(
-			fmt.Errorf("unsupported action %d", action),
 			"QueryUser",
-			"查询用户时发生未知错误",
+			fmt.Errorf("unsupported action %d", action),
+			define.LangKeyUserQueryUnknownErr,
 		)
 	}
 
@@ -100,9 +100,9 @@ func (u *UserHandle) QueryUser(tx *gorm.DB, action uint8, keyword any) (user def
 	}
 	if result.Error != nil {
 		return user, false, define.NewGeneralError(
-			fmt.Errorf("action = %d, keyword = %v, err = %w", action, keyword, result.Error),
 			"QueryUser",
-			"查询用户时发生未知错误",
+			fmt.Errorf("action = %d, keyword = %v, err = %w", action, keyword, result.Error),
+			define.LangKeyUserQueryUnknownErr,
 		)
 	}
 
@@ -127,7 +127,7 @@ func (u *UserHandle) UpdateUser(
 			return generalErr
 		}
 		if !found {
-			return define.NewGeneralError(fmt.Errorf("Target user not found"), "UpdateUser", "目标用户不存在")
+			return define.NewGeneralError("", fmt.Errorf("Target user not found"), define.LangKeyUserQueryNotFoundErr)
 		}
 
 		if lockFlags&UpdateUserLockFlagLockSession != 0 {
@@ -136,7 +136,7 @@ func (u *UserHandle) UpdateUser(
 				Where("user_unique_id = ?", user.UserUniqueID).
 				First(&user.SessionInfo)
 			if result.Error != nil {
-				return define.NewGeneralError(result.Error, "UpdateUser", "更新用户信息时锁定会话信息失败")
+				return define.NewGeneralError("", result.Error, define.LangKeyUserUpdateLockSessionFailErr)
 			}
 		}
 		if lockFlags&UpdateUserLockFlagLockProfile != 0 {
@@ -145,7 +145,7 @@ func (u *UserHandle) UpdateUser(
 				Where("user_unique_id = ?", user.UserUniqueID).
 				First(&user.ProfileData)
 			if result.Error != nil {
-				return define.NewGeneralError(result.Error, "UpdateUser", "更新用户信息时锁定用户资料失败")
+				return define.NewGeneralError("", result.Error, define.LangKeyUserUpdateLockProfileFailErr)
 			}
 		}
 
@@ -158,9 +158,9 @@ func (u *UserHandle) UpdateUser(
 
 	if err != nil {
 		if generalErr, ok := err.(*define.GeneralError); ok {
-			return generalErr
+			return generalErr.AppendSource("UpdateUser")
 		}
-		return define.NewGeneralError(err, "UpdateUser", "更新用户信息时发生未知错误")
+		return define.NewGeneralError("UpdateUser", err, define.LangKeyUserUpdateUnknownErr)
 	}
 
 	return nil
@@ -178,10 +178,10 @@ func (u *UserHandle) UpdateLoginToken(tx *gorm.DB, userIdentity string, newToken
 				Where("user_unique_id = ?", user.UserUniqueID).
 				UpdateColumn("login_token", newToken)
 			if result.Error != nil {
-				return define.NewGeneralError(result.Error, "", "更新登录令牌时发生未知错误")
+				return define.NewGeneralError("", result.Error, define.LangKeyUserUpdateLoginTokenErr)
 			}
 			if result.RowsAffected == 0 {
-				return define.NewGeneralError(fmt.Errorf("session not found"), "", "用户会话未找到")
+				return define.NewGeneralError("", fmt.Errorf("User session not found"), define.LangKeyUserSessionNotFoundErr)
 			}
 			return nil
 		},
@@ -207,10 +207,10 @@ func (u *UserHandle) ExtendSession(tx *gorm.DB, userIdentity string) *define.Gen
 					gorm.Expr("expire_unix_time + ?", ExtendSessionDurationDefault),
 				)
 			if result.Error != nil {
-				return define.NewGeneralError(result.Error, "", "更新会话过期时间时发生未知错误")
+				return define.NewGeneralError("", result.Error, define.LangKeyUserSessionExtendErr)
 			}
 			if result.RowsAffected == 0 {
-				return define.NewGeneralError(fmt.Errorf("session not found"), "", "用户会话未找到")
+				return define.NewGeneralError("", fmt.Errorf("User session not found"), define.LangKeyUserSessionNotFoundErr)
 			}
 			return nil
 		},

@@ -22,9 +22,10 @@ func handleLoginRequest(c *gin.Context, request UserLoginRequest) {
 		c.JSON(http.StatusOK, UserLoginResponse{
 			BasicResponseInfo: general.FromGeneralError(
 				define.NewGeneralError(
-					fmt.Errorf("Provided phone number must have 11 characters"),
 					"handleLoginRequest",
-					"手机号的长度必须为 11 位",
+					fmt.Errorf("Provided phone number must have %d characters", DefaultAccountPhoneLength),
+					define.LangKeyLoginPhoneLengthErr,
+					fmt.Sprintf("%d", DefaultAccountPhoneLength),
 				),
 			),
 		})
@@ -50,7 +51,7 @@ func handleFinishCaptcha(c *gin.Context, request UserLoginRequest) {
 	if request.CaptchaResponse == nil {
 		c.JSON(http.StatusOK, UserLoginResponse{
 			BasicResponseInfo: general.FromGeneralError(
-				define.NewGeneralError(fmt.Errorf("Captcha response not set"), "handleFinishCaptcha", "无效请求"),
+				define.NewGeneralError("handleFinishCaptcha", fmt.Errorf("Captcha response not set"), define.LangKeyGeneralInvalidRequest),
 			),
 		})
 		return
@@ -86,7 +87,7 @@ func handleFinishCaptcha(c *gin.Context, request UserLoginRequest) {
 		general.DiscardSMSTransaction(tran.AccountPhone())
 		c.JSON(http.StatusOK, UserLoginResponse{
 			BasicResponseInfo: general.FromGeneralError(
-				define.NewGeneralError(err, "handleFinishCaptcha", "发送短信验证码时出现未知错误"),
+				define.NewGeneralError("handleFinishCaptcha", err, define.LangKeyLoginSmsSendFailErr),
 			),
 		})
 		return
@@ -106,7 +107,7 @@ func handleSubmitSMSCode(c *gin.Context, request UserLoginRequest) {
 	case general.SmsConsumeStatusExpired:
 		c.JSON(http.StatusOK, UserLoginResponse{
 			BasicResponseInfo: general.FromGeneralError(
-				define.NewGeneralError(fmt.Errorf("SMS transaction is expired"), "handleSubmitSMSCode", "短信验证码已过期，请重新登录"),
+				define.NewGeneralError("handleSubmitSMSCode", fmt.Errorf("SMS transaction is expired"), define.LangKeyLoginSmsTranExpiredErr),
 			),
 		})
 		return

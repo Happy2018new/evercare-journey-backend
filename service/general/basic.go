@@ -9,10 +9,10 @@ type BasicSessionInfo struct {
 }
 
 type BasicResponseInfo struct {
-	SuccessStates  bool   `json:"success_states"`
-	DebugErrorInfo string `json:"debug_error_info,omitempty"`
-	PublicErrorMsg string `json:"public_error_msg,omitempty"`
-	ExtraErrorData any    `json:"extra_error_data,omitempty"`
+	SuccessStates  bool               `json:"success_states"`
+	DebugErrorInfo string             `json:"debug_error_info,omitempty"`
+	PublicErrorMsg *define.LangFormat `json:"public_error_msg,omitempty"`
+	ExtraErrorData any                `json:"extra_error_data,omitempty"`
 }
 
 func SuccResponseInfo() BasicResponseInfo {

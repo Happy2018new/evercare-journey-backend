@@ -78,7 +78,7 @@ func GenerateNewCaptchaRequest(ctx any) (*CaptchaRequest, *define.GeneralError) 
 	}
 	req, err := MakeCaptchaRequest(tran)
 	if err != nil {
-		return nil, define.NewGeneralError(err, "GenerateNewCaptchaRequest", "生成图形验证码时发生未知错误")
+		return nil, define.NewGeneralError("GenerateNewCaptchaRequest", err, define.LangKeyGeneralCaptchaGenFailErr)
 	}
 	return req, nil
 }
@@ -135,7 +135,7 @@ func OpenNewCaptchaTransaction(ctx any) (tran *CaptchaTransaction, generalErr *d
 		tran.captchaType = CaptchaTypeRotateImg
 	}
 	if err != nil {
-		return nil, define.NewGeneralError(err, "OpenNewCaptchaTransaction", "生成图形验证码时发生未知错误")
+		return nil, define.NewGeneralError("OpenNewCaptchaTransaction", err, define.LangKeyGeneralCaptchaGenFailErr)
 	}
 
 	tran.transactionUUID = uuid.NewString()

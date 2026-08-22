@@ -32,7 +32,7 @@ func handleAvatarUpload(c *gin.Context, request AvatarUploadRequest) {
 	if err != nil {
 		c.JSON(http.StatusOK, AvatarUploadResponse{
 			BasicResponseInfo: general.FromGeneralError(
-				define.NewGeneralError(err, "HandleAvatarUpload", "解压头像数据失败"),
+				define.NewGeneralError("HandleAvatarUpload", err, define.LangKeyAvatarUnzipFailErr),
 			),
 		})
 		return
@@ -41,9 +41,10 @@ func handleAvatarUpload(c *gin.Context, request AvatarUploadRequest) {
 		c.JSON(http.StatusOK, AvatarUploadResponse{
 			BasicResponseInfo: general.FromGeneralError(
 				define.NewGeneralError(
-					fmt.Errorf("Uploaded avatar exceeds %d bytes after decompress", DefaultAvatarImageMaxBytes),
 					"HandleAvatarUpload",
-					fmt.Sprintf("上传的头像图片不得超过 %d MB", DefaultAvatarImageMaxBytes/1024/1024),
+					fmt.Errorf("Uploaded avatar exceeds %d bytes after decompress", DefaultAvatarImageMaxBytes),
+					define.LangKeyAvatarReachMaxSizeErr,
+					fmt.Sprintf("%d", DefaultAvatarImageMaxBytes/1024/1024),
 				),
 			),
 		})
@@ -54,7 +55,7 @@ func handleAvatarUpload(c *gin.Context, request AvatarUploadRequest) {
 	if err != nil {
 		c.JSON(http.StatusOK, AvatarUploadResponse{
 			BasicResponseInfo: general.FromGeneralError(
-				define.NewGeneralError(err, "HandleAvatarUpload", "头像图片格式无效"),
+				define.NewGeneralError("HandleAvatarUpload", err, define.LangKeyAvatarInvalidData),
 			),
 		})
 		return
@@ -63,7 +64,7 @@ func handleAvatarUpload(c *gin.Context, request AvatarUploadRequest) {
 	if err != nil {
 		c.JSON(http.StatusOK, AvatarUploadResponse{
 			BasicResponseInfo: general.FromGeneralError(
-				define.NewGeneralError(err, "HandleAvatarUpload", "处理头像图片失败"),
+				define.NewGeneralError("HandleAvatarUpload", err, define.LangKeyAvatarConvertFailErr),
 			),
 		})
 		return
@@ -73,7 +74,7 @@ func handleAvatarUpload(c *gin.Context, request AvatarUploadRequest) {
 	if err = environment.DB.ResourceHandle().SaveResource(handle.ResourceTypeUserAvatar, avatarItemID, pngData); err != nil {
 		c.JSON(http.StatusOK, AvatarUploadResponse{
 			BasicResponseInfo: general.FromGeneralError(
-				define.NewGeneralError(err, "HandleAvatarUpload", "保存头像图片失败"),
+				define.NewGeneralError("HandleAvatarUpload", err, define.LangKeyAvatarSaveFailErr),
 			),
 		})
 		return
@@ -89,10 +90,10 @@ func handleAvatarUpload(c *gin.Context, request AvatarUploadRequest) {
 				Where("user_unique_id = ?", user.UserUniqueID).
 				UpdateColumn("avatar_item_id", avatarItemID)
 			if result.Error != nil {
-				return define.NewGeneralError(result.Error, "", "更新头像信息失败")
+				return define.NewGeneralError("", result.Error, define.LangKeyAvatarUpdateFailErr)
 			}
 			if result.RowsAffected == 0 {
-				return define.NewGeneralError(fmt.Errorf("Profile data not found"), "", "用户资料未找到")
+				return define.NewGeneralError("", fmt.Errorf("Profile data not found"), define.LangKeyUserQueryProfileNotFoundErr)
 			}
 			return nil
 		},

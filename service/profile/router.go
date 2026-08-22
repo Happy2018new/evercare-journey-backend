@@ -38,7 +38,7 @@ func HandleProfileData(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusOK, ProfileDataResponse{
 			BasicResponseInfo: general.FromGeneralError(
-				define.NewGeneralError(err, "HandleProfileData", "无效请求"),
+				define.NewGeneralError("HandleProfileData", err, define.LangKeyGeneralInvalidRequest),
 			),
 		})
 		return
@@ -54,7 +54,7 @@ func HandleProfileData(c *gin.Context) {
 	if status != auth.ValidateSessionStatusValidSession {
 		c.JSON(http.StatusOK, ProfileDataResponse{
 			BasicResponseInfo: general.FromGeneralError(
-				define.NewGeneralError(fmt.Errorf("Failed to validate current session"), "HandleProfileData", "无效的用户登录状态，请重新启动程序再试"),
+				define.NewGeneralError("HandleProfileData", fmt.Errorf("Failed to validate current session"), define.LangKeyGeneralInvalidSession),
 			),
 		})
 		return
@@ -75,9 +75,9 @@ func HandleProfileData(c *gin.Context) {
 	c.JSON(http.StatusOK, ProfileDataResponse{
 		BasicResponseInfo: general.FromGeneralError(
 			define.NewGeneralError(
-				fmt.Errorf("Unsupported profile data request action %d", request.Action),
 				"HandleProfileData",
-				"无效请求",
+				fmt.Errorf("Unsupported profile data request action %d", request.Action),
+				define.LangKeyGeneralInvalidRequest,
 			),
 		),
 	})
@@ -99,7 +99,7 @@ func HandleAvatarUpload(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusOK, AvatarUploadResponse{
 			BasicResponseInfo: general.FromGeneralError(
-				define.NewGeneralError(err, "HandleAvatarUpload", "无效请求"),
+				define.NewGeneralError("HandleAvatarUpload", err, define.LangKeyGeneralInvalidRequest),
 			),
 		})
 		return
@@ -115,7 +115,7 @@ func HandleAvatarUpload(c *gin.Context) {
 	if status != auth.ValidateSessionStatusValidSession {
 		c.JSON(http.StatusOK, AvatarUploadResponse{
 			BasicResponseInfo: general.FromGeneralError(
-				define.NewGeneralError(fmt.Errorf("failed to validate current session"), "HandleAvatarUpload", "无效的用户登录状态，请重新启动程序再试"),
+				define.NewGeneralError("HandleAvatarUpload", fmt.Errorf("failed to validate current session"), define.LangKeyGeneralInvalidSession),
 			),
 		})
 		return

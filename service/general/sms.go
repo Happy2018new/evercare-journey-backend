@@ -40,15 +40,15 @@ func (s *SMSTransaction) Context() any {
 func OpenNewSMSTransaction(accountPhone string, ctx any) (tran *SMSTransaction, generalErr *define.GeneralError) {
 	if _, ok := cachedSMSTransaction.Get(accountPhone); ok {
 		return nil, define.NewGeneralError(
-			fmt.Errorf("SMS transaction for account phone %s is already exists", accountPhone),
 			"OpenNewSMSTransaction",
-			"请勿多次在同一手机号上重复操作",
+			fmt.Errorf("SMS transaction for account phone %s is already exists", accountPhone),
+			define.LangKeyGeneralSmsTranBusyErr,
 		)
 	}
 
 	verifyCode, err := rand.Int(rand.Reader, big.NewInt(1000000))
 	if err != nil {
-		return nil, define.NewGeneralError(err, "OpenNewSMSTransaction", "生成短信验证码时发生未知错误")
+		return nil, define.NewGeneralError("OpenNewSMSTransaction", err, define.LangKeyGeneralSmsGenFailErr)
 	}
 
 	tran = &SMSTransaction{

@@ -24,7 +24,7 @@ func handleQueryProfileData(c *gin.Context, request ProfileDataRequest) {
 	if !found {
 		c.JSON(http.StatusOK, ProfileDataResponse{
 			BasicResponseInfo: general.FromGeneralError(
-				define.NewGeneralError(fmt.Errorf("Should never happened"), "handleQueryProfileData", "无效的用户登录状态，请重新启动程序再试"),
+				define.NewGeneralError("handleQueryProfileData", fmt.Errorf("Should never happened"), define.LangKeyGeneralInvalidSession),
 			),
 		})
 		return
@@ -44,7 +44,11 @@ func handleUpdateProfileExtraData(c *gin.Context, request ProfileDataRequest) {
 	default:
 		c.JSON(http.StatusOK, ProfileDataResponse{
 			BasicResponseInfo: general.FromGeneralError(
-				define.NewGeneralError(fmt.Errorf("Invalid user gender %d", request.Gender), "handleUpdateProfileExtraData", "无效请求"),
+				define.NewGeneralError(
+					"handleUpdateProfileExtraData",
+					fmt.Errorf("Invalid user gender %d", request.Gender),
+					define.LangKeyGeneralInvalidRequest,
+				),
 			),
 		})
 		return
@@ -55,7 +59,11 @@ func handleUpdateProfileExtraData(c *gin.Context, request ProfileDataRequest) {
 	default:
 		c.JSON(http.StatusOK, ProfileDataResponse{
 			BasicResponseInfo: general.FromGeneralError(
-				define.NewGeneralError(fmt.Errorf("Invalid user age %d", request.Age), "handleUpdateProfileExtraData", "无效请求"),
+				define.NewGeneralError(
+					"handleUpdateProfileExtraData",
+					fmt.Errorf("Invalid user age %d", request.Age),
+					define.LangKeyGeneralInvalidRequest,
+				),
 			),
 		})
 		return
@@ -72,10 +80,10 @@ func handleUpdateProfileExtraData(c *gin.Context, request ProfileDataRequest) {
 				UpdateColumn("gender", request.Gender).
 				UpdateColumn("age", request.Age)
 			if result.Error != nil {
-				return define.NewGeneralError(result.Error, "", "更新用户资料失败")
+				return define.NewGeneralError("", result.Error, define.LangKeyUserUpdateProfileFailErr)
 			}
 			if result.RowsAffected == 0 {
-				return define.NewGeneralError(fmt.Errorf("Should never happened"), "", "无效的用户登录状态，请重新启动程序再试")
+				return define.NewGeneralError("", fmt.Errorf("Should never happened"), define.LangKeyGeneralInvalidSession)
 			}
 			return nil
 		},
@@ -95,7 +103,7 @@ func handleUpdateProfileName(c *gin.Context, request ProfileDataRequest) {
 	if valid, reason := define.IsValidAccountName(request.Name); !valid {
 		c.JSON(http.StatusOK, ProfileDataResponse{
 			BasicResponseInfo: general.FromGeneralError(
-				define.NewGeneralError(fmt.Errorf("Invalid account name %s due to %s", request.Name, reason), "handleUpdateProfileName", reason),
+				define.NewGeneralError("handleUpdateProfileName", fmt.Errorf("Invalid account name %s; reason = %s", request.Name, reason), reason),
 			),
 		})
 		return
@@ -111,10 +119,10 @@ func handleUpdateProfileName(c *gin.Context, request ProfileDataRequest) {
 				Where("user_unique_id = ?", user.UserUniqueID).
 				UpdateColumn("account_name", request.Name)
 			if result.Error != nil {
-				return define.NewGeneralError(result.Error, "", "更新用户资料失败")
+				return define.NewGeneralError("", result.Error, define.LangKeyUserUpdateProfileFailErr)
 			}
 			if result.RowsAffected == 0 {
-				return define.NewGeneralError(fmt.Errorf("Should never happened"), "", "无效的用户登录状态，请重新启动程序再试")
+				return define.NewGeneralError("", fmt.Errorf("Should never happened"), define.LangKeyGeneralInvalidSession)
 			}
 			return nil
 		},

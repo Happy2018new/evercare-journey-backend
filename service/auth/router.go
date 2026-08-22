@@ -47,7 +47,7 @@ func HandleLogin(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusOK, UserLoginResponse{
 			BasicResponseInfo: general.FromGeneralError(
-				define.NewGeneralError(err, "HandleLogin", "无效请求"),
+				define.NewGeneralError("HandleLogin", err, define.LangKeyGeneralInvalidRequest),
 			),
 		})
 		return
@@ -68,9 +68,9 @@ func HandleLogin(c *gin.Context) {
 	c.JSON(http.StatusOK, UserLoginResponse{
 		BasicResponseInfo: general.FromGeneralError(
 			define.NewGeneralError(
-				fmt.Errorf("Unsupported request type %d", request.RequestType),
 				"HandleLogin",
-				"无效请求",
+				fmt.Errorf("Unsupported request type %d", request.RequestType),
+				define.LangKeyGeneralInvalidRequest,
 			),
 		),
 	})
@@ -92,7 +92,7 @@ func HandleSessionCheck(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusOK, SessionCheckResponse{
 			BasicResponseInfo: general.FromGeneralError(
-				define.NewGeneralError(err, "HandleSessionCheck", "无效请求"),
+				define.NewGeneralError("HandleSessionCheck", err, define.LangKeyGeneralInvalidRequest),
 			),
 		})
 		return

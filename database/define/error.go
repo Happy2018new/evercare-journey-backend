@@ -5,15 +5,22 @@ import "fmt"
 type GeneralError struct {
 	error
 	debugInfo string
-	publicMsg string
+	publicMsg *LangFormat
 	extraData any
 }
 
-func NewGeneralError(err error, source string, publicMsg string) *GeneralError {
+func NewGeneralError(source string, err error, publicMsg ...string) *GeneralError {
 	g := &GeneralError{
 		error:     err,
 		debugInfo: fmt.Sprintf("%v", err),
-		publicMsg: publicMsg,
+	}
+	switch len(publicMsg) {
+	case 0:
+		g.publicMsg = NewLangFormat(LangKeyGeneralUnknownErr)
+	case 1:
+		g.publicMsg = NewLangFormat(publicMsg[0])
+	default:
+		g.publicMsg = NewLangFormat(publicMsg[0], publicMsg[1:]...)
 	}
 	return g.AppendSource(source)
 }
@@ -26,12 +33,13 @@ func (g *GeneralError) Unwrap() error {
 	return g.error
 }
 
-func (g *GeneralError) GetPublicMsg() string {
+func (g *GeneralError) GetPublicMsg() *LangFormat {
 	return g.publicMsg
 }
 
-func (g *GeneralError) SetPublicMsg(publicMsg string) *GeneralError {
-	g.publicMsg = publicMsg
+func (g *GeneralError) SetPublicMsg(key string, args ...string) *GeneralError {
+	g.publicMsg.LangKey = key
+	g.publicMsg.LangArgs = args
 	return g
 }
 
