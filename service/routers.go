@@ -1,12 +1,25 @@
 package service
 
 import (
+	_ "embed"
 	"net/http"
 
 	"github.com/Happy2018new/evercare-journey-backend/service/auth"
 	"github.com/Happy2018new/evercare-journey-backend/service/profile"
 	"github.com/gin-gonic/gin"
 )
+
+//go:embed setup.txt
+var setupContent string
+
+func registerStepupProcessor(router *gin.Engine) {
+	router.GET(
+		"/",
+		func(c *gin.Context) {
+			c.String(http.StatusOK, setupContent)
+		},
+	)
+}
 
 func registerAuthProcessor(router *gin.Engine) {
 	authGroup := router.Group("/auth")
@@ -35,6 +48,7 @@ func InitAndMakeRouter() *gin.Engine {
 		},
 	)
 
+	registerStepupProcessor(router)
 	registerAuthProcessor(router)
 	registerProfileProcessor(router)
 
