@@ -140,7 +140,6 @@ type AvatarUploadRequest struct {
 
 type AvatarUploadResponse struct {
 	general.BasicResponseInfo
-	Checksum string `json:"checksum"`
 }
 
 func HandleAvatarUpload(c *gin.Context) {

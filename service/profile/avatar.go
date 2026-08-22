@@ -176,12 +176,6 @@ func handleAvatarUpload(c *gin.Context, request AvatarUploadRequest) {
 		return
 	}
 
-	rawCheckSum := sha512.Sum512(pngData)
-	ansCheckSum := hex.EncodeToString(rawCheckSum[:])
-	c.JSON(http.StatusOK, AvatarUploadResponse{
-		BasicResponseInfo: general.SuccResponseInfo(),
-		Checksum:          ansCheckSum,
-	})
-
+	c.JSON(http.StatusOK, AvatarUploadResponse{BasicResponseInfo: general.SuccResponseInfo()})
 	_, _, _ = auth.LoadUser(request.UserIdentity, true)
 }
