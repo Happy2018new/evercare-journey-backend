@@ -20,13 +20,13 @@ func NewResourceHandle(db *bbolt.DB) *ResourceHandle {
 	}
 }
 
-func (r *ResourceHandle) LoadResource(typeName string, srcKey string) (result []byte, found bool) {
+func (r *ResourceHandle) LoadResource(typeName string, resKey string) (result []byte, found bool) {
 	_ = r.db.View(func(tx *bbolt.Tx) error {
 		bucket := tx.Bucket([]byte(typeName))
 		if bucket == nil {
 			return nil
 		}
-		if result = bucket.Get([]byte(srcKey)); result != nil {
+		if result = bucket.Get([]byte(resKey)); result != nil {
 			result = append([]byte(nil), result...)
 			found = true
 		}
@@ -35,13 +35,13 @@ func (r *ResourceHandle) LoadResource(typeName string, srcKey string) (result []
 	return result, found
 }
 
-func (r *ResourceHandle) SaveResource(typeName string, srcKey string, data []byte) error {
+func (r *ResourceHandle) SaveResource(typeName string, resKey string, data []byte) error {
 	err := r.db.Update(func(tx *bbolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists([]byte(typeName))
 		if err != nil {
 			return err
 		}
-		return bucket.Put([]byte(srcKey), data)
+		return bucket.Put([]byte(resKey), data)
 	})
 	if err != nil {
 		return fmt.Errorf("SaveResource: %w", err)
@@ -49,10 +49,10 @@ func (r *ResourceHandle) SaveResource(typeName string, srcKey string, data []byt
 	return nil
 }
 
-func (r *ResourceHandle) DeleteResource(typeName string, srcKey string) error {
+func (r *ResourceHandle) DeleteResource(typeName string, resKey string) error {
 	err := r.db.Update(func(tx *bbolt.Tx) error {
 		if bucket := tx.Bucket([]byte(typeName)); bucket != nil {
-			return bucket.Delete([]byte(srcKey))
+			return bucket.Delete([]byte(resKey))
 		}
 		return nil
 	})

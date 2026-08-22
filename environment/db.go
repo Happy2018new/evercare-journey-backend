@@ -9,10 +9,11 @@ import (
 var DB *WrappedDatabase
 
 const (
-	DatabaseUser     = "username"
-	DatabasePassword = "password"
-	DatabaseHost     = "127.0.0.1:3306"
-	DatabaseName     = "dbname"
+	MySqlDatabaseUser     = "username"
+	MySqlDatabasePassword = "password"
+	MySqlDatabaseAddress  = "127.0.0.1:3306"
+	MySqlDatabaseName     = "dbname"
+	BBoltDatabasePath     = "res.db"
 )
 
 type WrappedDatabase struct {
