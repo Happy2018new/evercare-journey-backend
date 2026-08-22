@@ -3,6 +3,7 @@ package environment
 import (
 	"fmt"
 
+	"github.com/Happy2018new/evercare-journey-backend/database/define"
 	"go.etcd.io/bbolt"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -16,12 +17,15 @@ func init() {
 		MySqlDatabaseAddress,
 		MySqlDatabaseName,
 	)
-	mysql, err := gorm.Open(mysql.Open(dsn))
+	mysqlDB, err := gorm.Open(mysql.Open(dsn))
 	if err != nil {
 		panic(fmt.Errorf("Failed to connect to MySQL: %w", err))
 	}
+	if err = define.AutoMigrateTable(mysqlDB); err != nil {
+		panic(fmt.Errorf("Failed to migrate MySQL tables: %w", err))
+	}
 
-	bbolt, err := bbolt.Open(
+	resDB, err := bbolt.Open(
 		BBoltDatabasePath,
 		0600,
 		&bbolt.Options{
@@ -32,5 +36,5 @@ func init() {
 		panic(fmt.Errorf("Failed to open resource database: %w", err))
 	}
 
-	DB = NewWrappedDatabase(mysql, bbolt)
+	DB = NewWrappedDatabase(mysqlDB, resDB)
 }
