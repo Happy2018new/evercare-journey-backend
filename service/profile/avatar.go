@@ -115,7 +115,7 @@ func handleAvatarUpload(c *gin.Context, request AvatarUploadRequest) {
 	if !found {
 		c.JSON(http.StatusOK, AvatarUploadResponse{
 			BasicResponseInfo: general.FromGeneralError(
-				define.NewGeneralError("handleAvatarUpload", fmt.Errorf("Should never happened"), define.LangKeyGeneralUnknownErr),
+				define.NewGeneralError("handleAvatarUpload", fmt.Errorf("Should never happened (mark 0)"), define.LangKeyGeneralUnknownErr),
 			),
 		})
 		return
@@ -134,21 +134,21 @@ func handleAvatarUpload(c *gin.Context, request AvatarUploadRequest) {
 		return
 	}
 
-	avatarItemID := uuid.NewString()
-	if err = environment.DB.ResourceHandle().SaveResource(handle.ResourceTypeUserAvatar, avatarItemID, pngData); err != nil {
-		c.JSON(http.StatusOK, AvatarUploadResponse{
-			BasicResponseInfo: general.FromGeneralError(
-				define.NewGeneralError("handleAvatarUpload", err, define.LangKeyAvatarSaveFailErr),
-			),
-		})
-		return
-	}
 	generalErr = environment.DB.UserHandle().UpdateUser(
 		environment.DB.Database(),
 		handle.QueryUserActionSearchByUserIdentity,
 		request.UserIdentity,
-		handle.UpdateUserLockFlagLockData,
+		handle.UpdateUserLockFlagLockProfile,
 		func(tx *gorm.DB, user *define.UserData) *define.GeneralError {
+			if len(user.ProfileData.AvatarItemID) > 0 {
+				return define.NewGeneralError("", fmt.Errorf("Should never happened (mark 1)"), define.LangKeyGeneralUnknownErr)
+			}
+
+			avatarItemID := uuid.NewString()
+			if err = environment.DB.ResourceHandle().SaveResource(handle.ResourceTypeUserAvatar, avatarItemID, pngData); err != nil {
+				return define.NewGeneralError("", err, define.LangKeyAvatarSaveFailErr)
+			}
+
 			result := tx.Model(&define.UserProfile{}).
 				Where("user_unique_id = ?", user.UserUniqueID).
 				UpdateColumn("avatar_item_id", avatarItemID)
@@ -158,6 +158,7 @@ func handleAvatarUpload(c *gin.Context, request AvatarUploadRequest) {
 			if result.RowsAffected == 0 {
 				return define.NewGeneralError("", fmt.Errorf("Profile data not found"), define.LangKeyUserQueryProfileNotFoundErr)
 			}
+
 			return nil
 		},
 	)

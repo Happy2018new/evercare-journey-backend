@@ -171,7 +171,7 @@ func (u *UserHandle) UpdateLoginToken(tx *gorm.DB, userIdentity string, newToken
 		tx,
 		QueryUserActionSearchByUserIdentity,
 		userIdentity,
-		UpdateUserLockFlagLockSession,
+		0,
 		func(tx *gorm.DB, user *define.UserData) *define.GeneralError {
 			result := tx.
 				Model(&define.UserSession{}).
@@ -197,7 +197,7 @@ func (u *UserHandle) ExtendSession(tx *gorm.DB, userIdentity string) *define.Gen
 		tx,
 		QueryUserActionSearchByUserIdentity,
 		userIdentity,
-		UpdateUserLockFlagLockSession,
+		0,
 		func(tx *gorm.DB, user *define.UserData) *define.GeneralError {
 			result := tx.
 				Model(&define.UserSession{}).

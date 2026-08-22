@@ -73,12 +73,14 @@ func handleUpdateProfileExtraData(c *gin.Context, request ProfileDataRequest) {
 		environment.DB.Database(),
 		handle.QueryUserActionSearchByUserIdentity,
 		request.UserIdentity,
-		handle.UpdateUserLockFlagLockData,
+		0,
 		func(tx *gorm.DB, user *define.UserData) *define.GeneralError {
 			result := tx.Model(&define.UserProfile{}).
 				Where("user_unique_id = ?", user.UserUniqueID).
-				UpdateColumn("gender", request.Gender).
-				UpdateColumn("age", request.Age)
+				Updates(map[string]any{
+					"gender": request.Gender,
+					"age":    request.Age,
+				})
 			if result.Error != nil {
 				return define.NewGeneralError("", result.Error, define.LangKeyUserUpdateProfileFailErr)
 			}
@@ -113,7 +115,7 @@ func handleUpdateProfileName(c *gin.Context, request ProfileDataRequest) {
 		environment.DB.Database(),
 		handle.QueryUserActionSearchByUserIdentity,
 		request.UserIdentity,
-		handle.UpdateUserLockFlagLockData,
+		0,
 		func(tx *gorm.DB, user *define.UserData) *define.GeneralError {
 			result := tx.Model(&define.UserData{}).
 				Where("user_unique_id = ?", user.UserUniqueID).
