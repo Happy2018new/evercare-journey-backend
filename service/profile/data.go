@@ -38,7 +38,10 @@ func handleQueryProfileData(c *gin.Context, request ProfileDataRequest) {
 }
 
 func handleUpdateProfileExtraData(c *gin.Context, request ProfileDataRequest) {
-	if request.Gender != define.UserGenderMan && request.Gender != define.UserGenderWoman {
+	switch request.Gender {
+	case define.UserGenderNotSet:
+	case define.UserGenderMan, define.UserGenderWoman:
+	default:
 		c.JSON(http.StatusOK, ProfileDataResponse{
 			BasicResponseInfo: general.FromGeneralError(
 				define.NewGeneralError(fmt.Errorf("Invalid user gender %d", request.Gender), "handleUpdateProfileExtraData", "无效请求"),
@@ -46,7 +49,10 @@ func handleUpdateProfileExtraData(c *gin.Context, request ProfileDataRequest) {
 		})
 		return
 	}
-	if request.Age < define.UserMinAge || request.Age > define.UserMaxAge {
+	switch {
+	case request.Age == define.UserAgeNotSet:
+	case request.Age < define.UserMinAge || request.Age > define.UserMaxAge:
+	default:
 		c.JSON(http.StatusOK, ProfileDataResponse{
 			BasicResponseInfo: general.FromGeneralError(
 				define.NewGeneralError(fmt.Errorf("Invalid user age %d", request.Age), "handleUpdateProfileExtraData", "无效请求"),

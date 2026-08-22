@@ -18,13 +18,15 @@ const (
 )
 
 const (
-	UserGenderMan uint8 = iota
+	UserGenderNotSet uint8 = iota
+	UserGenderMan
 	UserGenderWoman
 )
 
 const (
-	UserMinAge = 0
-	UserMaxAge = 150
+	UserAgeNotSet uint8 = 255
+	UserMinAge    uint8 = 0
+	UserMaxAge    uint8 = 150
 )
 
 type UserData struct {
@@ -58,6 +60,10 @@ func MakeNewUser(accountPhone string, permissionLevel uint8) UserData {
 		PermissionLevel: permissionLevel,
 		SessionInfo: UserSession{
 			LoginToken: uuid.NewString(),
+		},
+		ProfileData: UserProfile{
+			Gender: UserGenderNotSet,
+			Age:    UserAgeNotSet,
 		},
 	}
 }
