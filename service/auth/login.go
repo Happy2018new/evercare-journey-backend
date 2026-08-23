@@ -3,6 +3,7 @@ package auth
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/Happy2018new/evercare-journey-backend/database/define"
 	"github.com/Happy2018new/evercare-journey-backend/database/handle"
@@ -26,6 +27,18 @@ func handleLoginRequest(c *gin.Context, request UserLoginRequest) {
 					fmt.Errorf("Provided phone number must have %d characters", DefaultAccountPhoneLength),
 					define.LangKeyLoginPhoneLengthErr,
 					fmt.Sprintf("%d", DefaultAccountPhoneLength),
+				),
+			),
+		})
+		return
+	}
+	if _, err := strconv.ParseInt(DefaultSmsExpireInMinutes, 10, 64); err != nil {
+		c.JSON(http.StatusOK, UserLoginResponse{
+			BasicResponseInfo: general.FromGeneralError(
+				define.NewGeneralError(
+					"handleLoginRequest",
+					fmt.Errorf("Invalid phone number %s", request.AccountPhone),
+					define.LangKeyLoginPhoneInvalidErr,
 				),
 			),
 		})

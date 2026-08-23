@@ -33,6 +33,7 @@ const (
 	LangKeyUserSessionExtendErr         = "error.user.session.extend"             // 更新会话过期时间时发生未知错误
 
 	LangKeyLoginPhoneLengthErr    = "error.login.phone.length"            // 手机号的长度必须为 %s 位
+	LangKeyLoginPhoneInvalidErr   = "error.login.phone.invalid"           // 提供的手机号的格式无效
 	LangKeyLoginSmsSendFailErr    = "error.login.sms.send.failed"         // 发送短信验证码时出现未知错误
 	LangKeyLoginSmsTranExpiredErr = "error.login.sms.transaction.expired" // 短信验证码已过期，请重新登录
 

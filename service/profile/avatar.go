@@ -57,7 +57,7 @@ func handleAvatarQuery(c *gin.Context, request AvatarQueryRequest) {
 		if err != nil {
 			c.JSON(http.StatusOK, AvatarQueryResponse{
 				BasicResponseInfo: general.FromGeneralError(
-					define.NewGeneralError("handleAvatarGetImage", err, define.LangKeyAvatarZipFailErr),
+					define.NewGeneralError("handleAvatarQuery", err, define.LangKeyAvatarZipFailErr),
 				),
 			})
 			return
