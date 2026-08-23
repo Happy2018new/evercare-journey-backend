@@ -144,6 +144,7 @@ func handleAvatarUpload(c *gin.Context, request AvatarUploadRequest) {
 		return
 	}
 
+	avatarItemID := uuid.NewString()
 	generalErr = environment.DB.UserHandle().UpdateUser(
 		environment.DB.Database(),
 		handle.QueryUserActionSearchByUserIdentity,
@@ -153,8 +154,6 @@ func handleAvatarUpload(c *gin.Context, request AvatarUploadRequest) {
 			if len(user.ProfileData.AvatarItemID) > 0 {
 				return define.NewGeneralError("", fmt.Errorf("Should never happened (mark 1)"), define.LangKeyGeneralUnknownErr)
 			}
-
-			avatarItemID := uuid.NewString()
 			if err = environment.DB.ResourceHandle().SaveResource(handle.ResourceTypeUserAvatar, avatarItemID, pngData); err != nil {
 				return define.NewGeneralError("", err, define.LangKeyAvatarSaveFailErr)
 			}
@@ -170,6 +169,7 @@ func handleAvatarUpload(c *gin.Context, request AvatarUploadRequest) {
 		},
 	)
 	if generalErr != nil {
+		_ = environment.DB.ResourceHandle().DeleteResource(handle.ResourceTypeUserAvatar, avatarItemID)
 		c.JSON(http.StatusOK, AvatarUploadResponse{
 			BasicResponseInfo: general.FromGeneralError(generalErr.AppendSource("handleAvatarUpload")),
 		})
