@@ -84,7 +84,6 @@ func handleFinishCaptcha(c *gin.Context, request UserLoginRequest) {
 		return
 	}
 	if !useCached {
-		fmt.Println(tran.VerifyCode())
 		if err := utils.SendSMSVerifyCode(tran.AccountPhone(), tran.VerifyCode(), DefaultSmsExpireInMinutes); err != nil {
 			general.DiscardSMSTransaction(tran.AccountPhone())
 			c.JSON(http.StatusOK, UserLoginResponse{
