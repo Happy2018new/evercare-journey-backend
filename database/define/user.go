@@ -34,7 +34,7 @@ const (
 )
 
 type UserData struct {
-	UserUniqueID    uint32      `gorm:"primaryKey;type:int;autoIncrement"`
+	UserUniqueID    uint32      `gorm:"primaryKey;type:int unsigned;autoIncrement"`
 	UserIdentity    string      `gorm:"type:char(36);uniqueIndex"`
 	AccountName     string      `gorm:"type:varchar(14);uniqueIndex"`
 	AccountPhone    string      `gorm:"type:varchar(20);uniqueIndex"`
@@ -44,14 +44,14 @@ type UserData struct {
 }
 
 type UserProfile struct {
-	UserUniqueID uint32 `gorm:"primaryKey;type:int"`
+	UserUniqueID uint32 `gorm:"primaryKey;type:int unsigned"`
 	AvatarItemID string `gorm:"type:varchar(36)"`
 	Gender       uint8  `gorm:"type:tinyint unsigned"`
 	Age          uint8  `gorm:"type:tinyint unsigned"`
 }
 
 type UserSession struct {
-	UserUniqueID   uint32 `gorm:"primaryKey;type:int"`
+	UserUniqueID   uint32 `gorm:"primaryKey;type:int unsigned"`
 	LoginToken     string `gorm:"type:char(36);uniqueIndex"`
 	ExpireUnixTime int64  `gorm:"type:bigint"`
 }
