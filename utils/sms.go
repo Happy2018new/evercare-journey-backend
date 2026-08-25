@@ -44,7 +44,7 @@ func SendSMSVerifyCode(accountPhone string, verifyCode string, expireInMinutes s
 	}
 
 	response, err := http.Post(
-		fmt.Sprintf("%s/%s", SmsApiEndPoint, SmsAccessToken),
+		fmt.Sprintf("%s/%s", SmsApiEndPoint, SmsTemplateCode),
 		"application/json",
 		bytes.NewBuffer(rawReq),
 	)
