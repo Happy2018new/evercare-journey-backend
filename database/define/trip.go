@@ -63,9 +63,9 @@ type PlaceInfo struct {
 type TripInfo struct {
 	TripUniqueID uint64 `gorm:"primaryKey;type:bigint unsigned;autoIncrement"`
 	TripIdentity string `gorm:"type:char(36);uniqueIndex"`
-	UserUniqueID uint32 `gorm:"type:int unsigned;index"`
+	UserUniqueID uint32 `gorm:"type:int unsigned;uniqueIndex:idx_trip_info_name,priority:1"`
 
-	TripName   string    `gorm:"type:varchar(14)"`
+	TripName   string    `gorm:"type:varchar(14);uniqueIndex:idx_trip_info_name,priority:2"`
 	TripDate   time.Time `gorm:"type:date;index"`
 	TravelMode uint8     `gorm:"type:tinyint unsigned"`
 	TripStatus uint8     `gorm:"type:tinyint unsigned"`

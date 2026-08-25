@@ -51,11 +51,13 @@ const (
 	LangKeyPlaceQueryUnknownErr   = "error.place.query.unknown"   // 查询地点信息时出现未知错误
 	LangKeyPlaceRefreshUnknownErr = "error.place.refresh.unknown" // 刷新地点信息时出现未知错误
 
-	LangKeyTripCreateUnknownErr = "error.trip.create.unknown"  // 创建行程时出现未知错误
-	LangKeyTripQueryNotFoundErr = "error.trip.query.not.found" // 目标行程不存在
-	LangKeyTripQueryUnknownErr  = "error.trip.query.unknown"   // 查询行程信息时出现未知错误
-	LangKeyTripUpdateUnknownErr = "error.trip.update.unknown"  // 更新行程信息时出现未知错误
-	LangKeyTripDeleteUnknownErr = "error.trip.delete.unknown"  // 删除行程信息时出现未知错误
+	LangKeyTripCreateNameUsedErr = "error.trip.create.name.used" // 不允许创建名称相同的行程
+	LangKeyTripCreateUnknownErr  = "error.trip.create.unknown"   // 创建行程时出现未知错误
+	LangKeyTripQueryNotFoundErr  = "error.trip.query.not.found"  // 目标行程不存在
+	LangKeyTripQueryUnknownErr   = "error.trip.query.unknown"    // 查询行程信息时出现未知错误
+	LangKeyTripUpdateNameUsedErr = "error.trip.update.name.used" // 目标行程的名称已被其他行程使用，请更换名称后再试
+	LangKeyTripUpdateUnknownErr  = "error.trip.update.unknown"   // 更新行程信息时出现未知错误
+	LangKeyTripDeleteUnknownErr  = "error.trip.delete.unknown"   // 删除行程信息时出现未知错误
 
 	LangKeyTripNodeSaveUnknownErr   = "error.trip.node.save.unknown"   // 保存行程节点信息时出现未知错误
 	LangKeyTripNodeDeleteUnknownErr = "error.trip.node.delete.unknown" // 删除行程节点信息时出现未知错误

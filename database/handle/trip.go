@@ -213,13 +213,20 @@ func (t *TripHandle) CreateTrip(
 			CurrentVersion: define.TripCurrentVersionDefault,
 			UpdateUnixTime: time.Now().Unix(),
 		}
-		if result := tx.Create(&temp); result.Error != nil {
+
+		result := tx.Create(&temp)
+		if result.Error == nil {
+			return t.SaveTripNodes(temp.TripIdentity, tripNodes)
+		}
+		if !errors.Is(result.Error, gorm.ErrDuplicatedKey) {
 			return result.Error
 		}
-		if err := t.SaveTripNodes(temp.TripIdentity, tripNodes); err != nil {
-			return err
-		}
-		return nil
+
+		return define.NewGeneralError(
+			"CreateTrip",
+			fmt.Errorf("Given trip %s already exists for user %d", tripName, userUniqueID),
+			define.LangKeyTripCreateNameUsedErr,
+		)
 	})
 
 	if err != nil {
@@ -272,6 +279,20 @@ func (t *TripHandle) UpdateTrip(
 		generalErr = tripUpdater(tx, &trip)
 		if generalErr != nil {
 			return generalErr
+		}
+
+		result := tx.
+			Where("user_unique_id = ? AND trip_name = ? AND trip_identity <> ?", trip.UserUniqueID, trip.TripName, trip.TripIdentity).
+			First(&define.TripInfo{})
+		if result.Error == nil {
+			return define.NewGeneralError(
+				"UpdateTrip",
+				fmt.Errorf("Target trip name %s already used; trip.UserUniqueID = %d", trip.TripName, trip.UserUniqueID),
+				define.LangKeyTripUpdateNameUsedErr,
+			)
+		}
+		if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return result.Error
 		}
 
 		return tx.
