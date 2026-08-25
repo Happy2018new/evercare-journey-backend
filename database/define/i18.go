@@ -47,6 +47,7 @@ const (
 
 	LangKeyPlaceNameInvalidErr    = "error.place.name.invalid"    // 给出的地点名称不得为空或超过 %s 个字符
 	LangKeyPlaceSaveUnknownErr    = "error.place.save.unknown"    // 保存地点信息时出现未知错误
+	LangKeyPlaceQueryNotFoundErr  = "error.place.query.not.found" // 目标地点不存在
 	LangKeyPlaceQueryUnknownErr   = "error.place.query.unknown"   // 查询地点信息时出现未知错误
 	LangKeyPlaceRefreshUnknownErr = "error.place.refresh.unknown" // 刷新地点信息时出现未知错误
 
@@ -58,4 +59,14 @@ const (
 
 	LangKeyTripNodeSaveUnknownErr   = "error.trip.node.save.unknown"   // 保存行程节点信息时出现未知错误
 	LangKeyTripNodeDeleteUnknownErr = "error.trip.node.delete.unknown" // 删除行程节点信息时出现未知错误
+
+	LangKeyHotPlaceCreateUnknownErr      = "error.hot.place.create.unknown"       // 创建热门地点推荐时出现未知错误
+	LangKeyHotPlaceQueryUnknownErr       = "error.hot.place.query.unknown"        // 查询热门地点推荐时出现未知错误
+	LangKeyHotPlaceUpdateNotFoundErr     = "error.hot.place.update.not.found"     // 更新热门地点推荐时未能找到该推荐数据
+	LangKeyHotPlaceUpdateUnknownErr      = "error.hot.place.update.unknown"       // 更新热门地点推荐时出现未知错误
+	LangKeyHotPlaceDeleteNotFoundErr     = "error.hot.place.delete.not.found"     // 删除热门地点推荐时未能找到该推荐数据
+	LangKeyHotPlaceDeleteUnknownErr      = "error.hot.place.delete.unknown"       // 删除热门地点推荐时出现未知错误
+	LangKeyHotPlaceImageQueryUnknownErr  = "error.hot.place.image.query.unknown"  // 查询热门地点图片时出现未知错误
+	LangKeyHotPlaceImageSaveUnknownErr   = "error.hot.place.image.save.unknown"   // 保存热门地点图片时出现未知错误
+	LangKeyHotPlaceImageDeleteUnknownErr = "error.hot.place.image.delete.unknown" // 删除热门地点图片时出现未知错误
 )

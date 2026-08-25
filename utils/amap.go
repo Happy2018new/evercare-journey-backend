@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -402,7 +401,7 @@ func parseOptionalInt(value flexibleString) (int, error) {
 
 func parseRequiredInt(value flexibleString) (int, error) {
 	if value == "" {
-		return 0, errors.New("parseRequiredInt: Given value is empty")
+		return 0, fmt.Errorf("parseRequiredInt: Given value is empty")
 	}
 
 	result, err := strconv.ParseInt(string(value), 10, 0)
@@ -428,7 +427,7 @@ func parseOptionalInt64(value flexibleString) (int64, error) {
 
 func parseRequiredInt64(value flexibleString) (int64, error) {
 	if value == "" {
-		return 0, errors.New("parseRequiredInt64: Given value is empty")
+		return 0, fmt.Errorf("parseRequiredInt64: Given value is empty")
 	}
 
 	result, err := strconv.ParseInt(string(value), 10, 64)

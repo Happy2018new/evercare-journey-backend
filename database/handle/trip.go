@@ -266,7 +266,7 @@ func (t *TripHandle) UpdateTrip(
 			return generalErr
 		}
 		if !found {
-			return define.NewGeneralError("UpdateTrip", errors.New("Target trip not found"), define.LangKeyTripQueryNotFoundErr)
+			return define.NewGeneralError("UpdateTrip", fmt.Errorf("Target trip not found"), define.LangKeyTripQueryNotFoundErr)
 		}
 
 		generalErr = tripUpdater(tx, &trip)
@@ -300,7 +300,7 @@ func (t *TripHandle) DeleteTrip(tx *gorm.DB, tripIdentity string) *define.Genera
 			return generalErr
 		}
 		if !found {
-			return define.NewGeneralError("", errors.New("Target trip not found"), define.LangKeyTripQueryNotFoundErr)
+			return define.NewGeneralError("", fmt.Errorf("Target trip not found"), define.LangKeyTripQueryNotFoundErr)
 		}
 
 		if err := tx.Delete(&trip).Error; err != nil {

@@ -20,17 +20,22 @@ type WrappedDatabase struct {
 	database       *gorm.DB
 	userHandle     *handle.UserHandle
 	tripHandle     *handle.TripHandle
+	hotHandle      *handle.HotHandle
 	resourceHandle *handle.ResourceHandle
 }
 
 func NewWrappedDatabase(mysql *gorm.DB, bbolt *bbolt.DB) *WrappedDatabase {
 	resHandle := handle.NewResourceHandle(bbolt)
+	tripHandle := handle.NewTripHandle(resHandle)
+
 	wrappedDB := &WrappedDatabase{
 		database:       mysql,
 		userHandle:     handle.NewUserHandle(),
-		tripHandle:     handle.NewTripHandle(resHandle),
+		tripHandle:     tripHandle,
+		hotHandle:      handle.NewHotHandle(resHandle, tripHandle),
 		resourceHandle: resHandle,
 	}
+
 	return wrappedDB
 }
 
@@ -44,6 +49,10 @@ func (w *WrappedDatabase) UserHandle() *handle.UserHandle {
 
 func (w *WrappedDatabase) TripHandle() *handle.TripHandle {
 	return w.tripHandle
+}
+
+func (w *WrappedDatabase) HotHandle() *handle.HotHandle {
+	return w.hotHandle
 }
 
 func (w *WrappedDatabase) ResourceHandle() *handle.ResourceHandle {
