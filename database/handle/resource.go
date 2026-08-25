@@ -8,6 +8,7 @@ import (
 
 const (
 	ResourceTypeUserAvatar = "USER_AVATAR"
+	ResourceTypeTripNodes  = "TRIP_NODES"
 )
 
 type ResourceHandle struct {

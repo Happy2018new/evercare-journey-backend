@@ -44,4 +44,18 @@ const (
 	LangKeyAvatarConvertFailErr  = "error.avatar.convert.failed" // 处理头像图片失败
 	LangKeyAvatarSaveFailErr     = "error.avatar.save.failed"    // 保存头像图片失败
 	LangKeyAvatarUpdateFailErr   = "error.avatar.update.failed"  // 更新用户头像失败
+
+	LangKeyPlaceNameInvalidErr    = "error.place.name.invalid"    // 给出的地点名称不得为空或超过 %s 个字符
+	LangKeyPlaceSaveUnknownErr    = "error.place.save.unknown"    // 保存地点信息时出现未知错误
+	LangKeyPlaceQueryUnknownErr   = "error.place.query.unknown"   // 查询地点信息时出现未知错误
+	LangKeyPlaceRefreshUnknownErr = "error.place.refresh.unknown" // 刷新地点信息时出现未知错误
+
+	LangKeyTripCreateUnknownErr = "error.trip.create.unknown"  // 创建行程时出现未知错误
+	LangKeyTripQueryNotFoundErr = "error.trip.query.not.found" // 目标行程不存在
+	LangKeyTripQueryUnknownErr  = "error.trip.query.unknown"   // 查询行程信息时出现未知错误
+	LangKeyTripUpdateUnknownErr = "error.trip.update.unknown"  // 更新行程信息时出现未知错误
+	LangKeyTripDeleteUnknownErr = "error.trip.delete.unknown"  // 删除行程信息时出现未知错误
+
+	LangKeyTripNodeSaveUnknownErr   = "error.trip.node.save.unknown"   // 保存行程节点信息时出现未知错误
+	LangKeyTripNodeDeleteUnknownErr = "error.trip.node.delete.unknown" // 删除行程节点信息时出现未知错误
 )

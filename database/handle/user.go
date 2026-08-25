@@ -76,7 +76,7 @@ func (u *UserHandle) QueryUser(tx *gorm.DB, action uint8, keyword any) (user def
 	default:
 		return user, false, define.NewGeneralError(
 			"QueryUser",
-			fmt.Errorf("unsupported action %d", action),
+			fmt.Errorf("Unsupported action %d", action),
 			define.LangKeyUserQueryUnknownErr,
 		)
 	}

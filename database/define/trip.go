@@ -1,22 +1,26 @@
 package define
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/sandertv/gophertunnel/minecraft/protocol"
+)
 
 const (
-	PlaceProviderDefault         = "amap"
+	PlaceProviderNameDefault     = "amap"
 	PlaceCoordinateSystemDefault = "gcj02"
+)
+
+const (
+	TripNameMaxLengthDefault  = 14
+	TripCurrentVersionDefault = 1
 )
 
 const (
 	PlaceStatusActive uint8 = iota
 	PlaceStatusUnavailable
 	PlaceStatusArchived
-)
-
-const (
-	TripNodeTypeStart uint8 = iota
-	TripNodeTypeWaypoint
-	TripNodeTypeEnd
 )
 
 const (
@@ -32,8 +36,9 @@ const (
 	TripTravelModeTransit
 )
 
-type Place struct {
+type PlaceInfo struct {
 	PlaceUniqueID   uint64 `gorm:"primaryKey;type:bigint unsigned;autoIncrement"`
+	PlaceIdentity   string `gorm:"type:char(36);uniqueIndex"`
 	ProviderName    string `gorm:"type:varchar(16);uniqueIndex:idx_place_provider_id,priority:1"`
 	ProviderPlaceID string `gorm:"type:varchar(64);uniqueIndex:idx_place_provider_id,priority:2"`
 
@@ -51,25 +56,13 @@ type Place struct {
 	Latitude         float64 `gorm:"type:decimal(10,7)"`
 	CoordinateSystem string  `gorm:"type:varchar(16)"`
 
-	PlaceStatus      uint8 `gorm:"type:tinyint unsigned"`
-	LastSyncUnixTime int64 `gorm:"type:bigint"`
+	PlaceStatus  uint8 `gorm:"type:tinyint unsigned"`
+	SyncUnixTime int64 `gorm:"type:bigint"`
 }
 
-type TripNode struct {
-	TripNodeUniqueID uint64 `gorm:"primaryKey;type:bigint unsigned;autoIncrement"`
-
-	BelongToWhichTrip uint64 `gorm:"type:bigint unsigned;index:idx_trip_node_ind,priority:1"`
-	LinkToWhichPlace  uint64 `gorm:"type:bigint unsigned;index"`
-
-	NodeIndex uint8  `gorm:"type:tinyint unsigned;index:idx_trip_node_ind,priority:2"`
-	NodeType  uint8  `gorm:"type:tinyint unsigned"`
-	NodeNote  string `gorm:"type:varchar(500)"`
-
-	PlaceData Place `gorm:"foreignKey:LinkToWhichPlace;references:PlaceUniqueID"`
-}
-
-type Trip struct {
+type TripInfo struct {
 	TripUniqueID uint64 `gorm:"primaryKey;type:bigint unsigned;autoIncrement"`
+	TripIdentity string `gorm:"type:char(36);uniqueIndex"`
 	UserUniqueID uint32 `gorm:"type:int unsigned;index"`
 
 	TripName   string    `gorm:"type:varchar(14)"`
@@ -77,9 +70,30 @@ type Trip struct {
 	TravelMode uint8     `gorm:"type:tinyint unsigned"`
 	TripStatus uint8     `gorm:"type:tinyint unsigned"`
 
-	CreateUnixTime int64 `gorm:"type:bigint"`
-	UpdateUnixTime int64 `gorm:"type:bigint"`
+	CurrentVersion uint32 `gorm:"type:int unsigned"`
+	UpdateUnixTime int64  `gorm:"type:bigint"`
 
-	OwnerData UserData   `gorm:"foreignKey:UserUniqueID;references:UserUniqueID"`
-	NodeData  []TripNode `gorm:"foreignKey:BelongToWhichTrip;references:TripUniqueID"`
+	OwnerInfo UserData `gorm:"foreignKey:UserUniqueID;references:UserUniqueID"`
+}
+
+type TripNode struct {
+	NoteString    uuid.UUID `json:"note_string"`
+	PlaceIdentity string    `json:"place_identity"`
+}
+
+func NewTripNode() *TripNode {
+	return new(TripNode)
+}
+
+func (t *TripNode) Marshal(io protocol.IO) {
+	io.UUID(&t.NoteString)
+	io.StringUTF(&t.PlaceIdentity)
+}
+
+type MulTripNode []TripNode
+
+func (m *MulTripNode) Marshal(io protocol.IO) {
+	data := ([]TripNode)(*m)
+	protocol.SliceUint8Length(io, &data)
+	*m = data
 }

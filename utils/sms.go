@@ -7,11 +7,16 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-
-	"github.com/Happy2018new/evercare-journey-backend/environment"
 )
 
-const SmsApiEndPoint = "https://push.spug.cc/sms"
+var (
+	SmsAccessToken  = "SMS_ACCESS_TOKEN"
+	SmsTemplateCode = "SMS_TEMPLATE_CODE"
+)
+
+const (
+	SmsApiEndPoint = "https://push.spug.cc/sms"
+)
 
 type SmsCodeRequest struct {
 	To     string `json:"to"`
@@ -39,7 +44,7 @@ func SendSMSVerifyCode(accountPhone string, verifyCode string, expireInMinutes s
 	}
 
 	response, err := http.Post(
-		fmt.Sprintf("%s/%s", SmsApiEndPoint, environment.SmsTemplateCode),
+		fmt.Sprintf("%s/%s", SmsApiEndPoint, SmsAccessToken),
 		"application/json",
 		bytes.NewBuffer(rawReq),
 	)
