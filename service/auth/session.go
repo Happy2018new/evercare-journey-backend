@@ -2,7 +2,9 @@ package auth
 
 import (
 	"crypto/sha512"
+	"crypto/subtle"
 	"encoding/hex"
+	"strings"
 	"time"
 
 	"github.com/Happy2018new/evercare-journey-backend/database/define"
@@ -32,7 +34,12 @@ func LoadUser(userIdentity string, reload bool) (user *define.UserData, found bo
 
 	if !reload {
 		if val, ok := cachedSessionInfo.Get(userIdentity); ok {
-			return val.(*define.UserData), true, nil
+			if cachedUser, ok := val.(*define.UserData); ok && cachedUser != nil {
+				return cachedUser, true, nil
+			}
+			// Never let a corrupted cache entry turn an authentication request
+			// into a process panic. A fresh database read is authoritative.
+			cachedSessionInfo.Delete(userIdentity)
 		}
 	}
 
@@ -46,6 +53,14 @@ func LoadUser(userIdentity string, reload bool) (user *define.UserData, found bo
 
 	cachedSessionInfo.Set(userIdentity, &result, cache.DefaultExpiration)
 	return &result, true, nil
+}
+
+// InvalidateUserCache removes the local session/profile snapshot. It is used
+// after a successful write so a later authenticated request always reloads
+// the committed database values instead of observing stale profile/session
+// data.
+func InvalidateUserCache(userIdentity string) {
+	cachedSessionInfo.Delete(strings.TrimSpace(userIdentity))
 }
 
 func UpdateLoginToken(userIdentity string, newToken string) *define.GeneralError {
@@ -77,6 +92,9 @@ func ExtendSession(userIdentity string) *define.GeneralError {
 }
 
 func ValidateSession(session general.BasicSessionInfo) (status uint8, generalErr *define.GeneralError) {
+	if strings.TrimSpace(session.UserIdentity) == "" || strings.TrimSpace(session.EncryptedToken) == "" {
+		return ValidateSessionStatusTokenInvalid, nil
+	}
 	parsedSalt, err := uuid.Parse(session.RandomSalt)
 	if err != nil {
 		return ValidateSessionStatusInvalidSalt, nil
@@ -100,7 +118,10 @@ func ValidateSession(session general.BasicSessionInfo) (status uint8, generalErr
 			[]byte(parsedSalt.String())...,
 		),
 	)
-	if hex.EncodeToString(checksum[:]) != session.EncryptedToken {
+	expectedToken := hex.EncodeToString(checksum[:])
+	providedToken := strings.TrimSpace(session.EncryptedToken)
+	if len(providedToken) != len(expectedToken) ||
+		subtle.ConstantTimeCompare([]byte(expectedToken), []byte(providedToken)) != 1 {
 		return ValidateSessionStatusTokenInvalid, nil
 	}
 	if time.Now().Unix() > user.SessionInfo.ExpireUnixTime {

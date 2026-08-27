@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -13,10 +14,20 @@ import (
 	"time"
 )
 
-var AmapServiceAccessToken = "AMAP_SERVICE_API_KEY"
+const defaultMapServiceAPIKey = "AMAP_SERVICE_API_KEY"
+
+// MapServiceAPIKey is the Amap Web Service key used by all map requests.
+// Applications should replace it during startup/configuration rather than
+// committing a real key to source control.
+var MapServiceAPIKey = defaultMapServiceAPIKey
+
+// AmapServiceAccessToken is kept for source compatibility with the earlier
+// utility name. New code should configure MapServiceAPIKey.
+var AmapServiceAccessToken = defaultMapServiceAPIKey
 
 const (
 	AmapPlaceSearchEndpoint = "https://restapi.amap.com/v3/place/text"
+	AmapPlaceAroundEndpoint = "https://restapi.amap.com/v3/place/around"
 	AmapPlaceDetailEndpoint = "https://restapi.amap.com/v3/place/detail"
 	AmapDistanceEndpoint    = "https://restapi.amap.com/v3/distance"
 )
@@ -48,6 +59,20 @@ type AmapPlaceSearchOptions struct {
 	CityLimit bool
 	Page      int
 	PageSize  int
+	Category  string
+}
+
+type AmapNearbyPlaceSearchOptions struct {
+	Longitude float64
+	Latitude  float64
+	Radius    int
+	Keywords  string
+	Category  string
+	City      string
+	CityLimit bool
+	Page      int
+	PageSize  int
+	SortRule  string
 }
 
 type AmapPlace struct {
@@ -119,6 +144,9 @@ func SearchAmapPlaces(ctx context.Context, options AmapPlaceSearchOptions) (Amap
 	if city := strings.TrimSpace(options.City); city != "" {
 		query.Set("city", city)
 	}
+	if category := strings.TrimSpace(options.Category); category != "" {
+		query.Set("types", category)
+	}
 
 	response, err := requestAmapJSON[amapPlaceResponse](ctx, AmapPlaceSearchEndpoint, query)
 	if err != nil {
@@ -128,9 +156,95 @@ func SearchAmapPlaces(ctx context.Context, options AmapPlaceSearchOptions) (Amap
 	if err != nil {
 		return AmapPlaceSearchResult{}, fmt.Errorf("SearchAmapPlaces: Invalid result count: %w", err)
 	}
+	if count < 0 {
+		return AmapPlaceSearchResult{}, fmt.Errorf("SearchAmapPlaces: Invalid negative result count %d", count)
+	}
 	places, err := convertAmapPlaces(response.POIs)
 	if err != nil {
 		return AmapPlaceSearchResult{}, fmt.Errorf("SearchAmapPlaces: %w", err)
+	}
+
+	return AmapPlaceSearchResult{Count: count, Places: places}, nil
+}
+
+// SearchAmapNearbyPlaces searches POIs around a GCJ-02 coordinate. Page and
+// PageSize default to 1 and 20 respectively when they are zero.
+func SearchAmapNearbyPlaces(ctx context.Context, options AmapNearbyPlaceSearchOptions) (AmapPlaceSearchResult, error) {
+	if math.IsNaN(options.Longitude) || math.IsInf(options.Longitude, 0) ||
+		options.Longitude < -180 || options.Longitude > 180 {
+		return AmapPlaceSearchResult{}, fmt.Errorf("SearchAmapNearbyPlaces: Longitude must be between -180 and 180")
+	}
+	if math.IsNaN(options.Latitude) || math.IsInf(options.Latitude, 0) ||
+		options.Latitude < -90 || options.Latitude > 90 {
+		return AmapPlaceSearchResult{}, fmt.Errorf("SearchAmapNearbyPlaces: Latitude must be between -90 and 90")
+	}
+
+	radius := options.Radius
+	if radius == 0 {
+		radius = 1000
+	}
+	if radius < 1 || radius > 50000 {
+		return AmapPlaceSearchResult{}, fmt.Errorf("SearchAmapNearbyPlaces: Radius must be between 1 and 50000 metres")
+	}
+
+	page := options.Page
+	if page == 0 {
+		page = 1
+	}
+	if page < 1 {
+		return AmapPlaceSearchResult{}, fmt.Errorf("SearchAmapNearbyPlaces: Page must be greater than zero")
+	}
+
+	pageSize := options.PageSize
+	if pageSize == 0 {
+		pageSize = 20
+	}
+	if pageSize < 1 || pageSize > 25 {
+		return AmapPlaceSearchResult{}, fmt.Errorf("SearchAmapNearbyPlaces: Page size must be between 1 and 25")
+	}
+
+	sortRule := strings.TrimSpace(options.SortRule)
+	if sortRule != "" && sortRule != "distance" && sortRule != "weight" {
+		return AmapPlaceSearchResult{}, fmt.Errorf("SearchAmapNearbyPlaces: Sort rule must be distance or weight")
+	}
+
+	query := url.Values{
+		"location": {formatAmapCoordinate(AmapCoordinate{
+			Longitude: options.Longitude,
+			Latitude:  options.Latitude,
+		})},
+		"radius":    {strconv.Itoa(radius)},
+		"page":      {strconv.Itoa(page)},
+		"offset":    {strconv.Itoa(pageSize)},
+		"citylimit": {strconv.FormatBool(options.CityLimit)},
+	}
+	if keywords := strings.TrimSpace(options.Keywords); keywords != "" {
+		query.Set("keywords", keywords)
+	}
+	if category := strings.TrimSpace(options.Category); category != "" {
+		query.Set("types", category)
+	}
+	if city := strings.TrimSpace(options.City); city != "" {
+		query.Set("city", city)
+	}
+	if sortRule != "" {
+		query.Set("sortrule", sortRule)
+	}
+
+	response, err := requestAmapJSON[amapPlaceResponse](ctx, AmapPlaceAroundEndpoint, query)
+	if err != nil {
+		return AmapPlaceSearchResult{}, fmt.Errorf("SearchAmapNearbyPlaces: %w", err)
+	}
+	count, err := parseOptionalInt(response.Count)
+	if err != nil {
+		return AmapPlaceSearchResult{}, fmt.Errorf("SearchAmapNearbyPlaces: Invalid result count: %w", err)
+	}
+	if count < 0 {
+		return AmapPlaceSearchResult{}, fmt.Errorf("SearchAmapNearbyPlaces: Invalid negative result count %d", count)
+	}
+	places, err := convertAmapPlaces(response.POIs)
+	if err != nil {
+		return AmapPlaceSearchResult{}, fmt.Errorf("SearchAmapNearbyPlaces: %w", err)
 	}
 
 	return AmapPlaceSearchResult{Count: count, Places: places}, nil
@@ -155,11 +269,17 @@ func GetAmapPlaceByID(ctx context.Context, providerPlaceID string) (AmapPlace, e
 	if len(response.POIs) == 0 {
 		return AmapPlace{}, fmt.Errorf("GetAmapPlaceByID: Place not found")
 	}
-	place, err := convertAmapPlace(response.POIs[0])
-	if err != nil {
-		return AmapPlace{}, fmt.Errorf("GetAmapPlaceByID: %w", err)
+	for index, rawPlace := range response.POIs {
+		if strings.TrimSpace(string(rawPlace.ID)) != providerPlaceID {
+			continue
+		}
+		place, err := convertAmapPlace(rawPlace)
+		if err != nil {
+			return AmapPlace{}, fmt.Errorf("GetAmapPlaceByID: invalid matching place at index %d: %w", index, err)
+		}
+		return place, nil
 	}
-	return place, nil
+	return AmapPlace{}, fmt.Errorf("GetAmapPlaceByID: response did not contain requested place ID %s", providerPlaceID)
 }
 
 // QueryAmapDistances returns distance in metres and duration in seconds from
@@ -172,6 +292,14 @@ func QueryAmapDistances(
 ) ([]AmapDistance, error) {
 	if len(origins) == 0 || len(origins) > amapMaxOrigins {
 		return nil, fmt.Errorf("QueryAmapDistances: origins count must be between 1 and %d", amapMaxOrigins)
+	}
+	if err := validateAmapCoordinate(destination); err != nil {
+		return nil, fmt.Errorf("QueryAmapDistances: invalid destination: %w", err)
+	}
+	for index, origin := range origins {
+		if err := validateAmapCoordinate(origin); err != nil {
+			return nil, fmt.Errorf("QueryAmapDistances: invalid origin %d: %w", index, err)
+		}
 	}
 	if distanceType != AmapDistanceTypeStraight &&
 		distanceType != AmapDistanceTypeDriving &&
@@ -291,7 +419,14 @@ func requestAmapJSON[T any](ctx context.Context, endpoint string, query url.Valu
 			values.Add(key, val)
 		}
 	}
-	values.Set("key", AmapServiceAccessToken)
+	apiKey := strings.TrimSpace(MapServiceAPIKey)
+	if apiKey == "" || apiKey == defaultMapServiceAPIKey {
+		apiKey = strings.TrimSpace(AmapServiceAccessToken)
+	}
+	if apiKey == "" || apiKey == defaultMapServiceAPIKey {
+		return result, fmt.Errorf("requestAmapJSON: MapServiceAPIKey is not configured")
+	}
+	values.Set("key", apiKey)
 	values.Set("output", "JSON")
 	requestURL.RawQuery = values.Encode()
 
@@ -342,6 +477,12 @@ func convertAmapPlaces(rawPlaces []amapRawPlace) ([]AmapPlace, error) {
 }
 
 func convertAmapPlace(raw amapRawPlace) (AmapPlace, error) {
+	if strings.TrimSpace(string(raw.ID)) == "" {
+		return AmapPlace{}, fmt.Errorf("convertAmapPlace: provider place ID is empty")
+	}
+	if strings.TrimSpace(string(raw.Name)) == "" {
+		return AmapPlace{}, fmt.Errorf("convertAmapPlace: place name is empty")
+	}
 	coordinate, err := parseAmapCoordinate(string(raw.Location))
 	if err != nil {
 		return AmapPlace{}, fmt.Errorf("convertAmapPlace: Invalid location for place %q due to %w", raw.ID, err)
@@ -361,6 +502,21 @@ func convertAmapPlace(raw amapRawPlace) (AmapPlace, error) {
 	}, nil
 }
 
+func validateAmapCoordinate(coordinate AmapCoordinate) error {
+	if math.IsNaN(coordinate.Longitude) || math.IsInf(coordinate.Longitude, 0) ||
+		coordinate.Longitude < -180 || coordinate.Longitude > 180 {
+		return fmt.Errorf("longitude must be between -180 and 180")
+	}
+	if math.IsNaN(coordinate.Latitude) || math.IsInf(coordinate.Latitude, 0) ||
+		coordinate.Latitude < -90 || coordinate.Latitude > 90 {
+		return fmt.Errorf("latitude must be between -90 and 90")
+	}
+	if coordinate.Longitude == 0 && coordinate.Latitude == 0 {
+		return fmt.Errorf("longitude and latitude cannot both be zero")
+	}
+	return nil
+}
+
 func parseAmapCoordinate(location string) (AmapCoordinate, error) {
 	parts := strings.Split(location, ",")
 	if len(parts) != 2 {
@@ -377,6 +533,17 @@ func parseAmapCoordinate(location string) (AmapCoordinate, error) {
 	}
 
 	coordinate := AmapCoordinate{Longitude: longitude, Latitude: latitude}
+	if math.IsNaN(coordinate.Longitude) || math.IsInf(coordinate.Longitude, 0) ||
+		coordinate.Longitude < -180 || coordinate.Longitude > 180 {
+		return AmapCoordinate{}, fmt.Errorf("parseAmapCoordinate: Longitude must be between -180 and 180")
+	}
+	if math.IsNaN(coordinate.Latitude) || math.IsInf(coordinate.Latitude, 0) ||
+		coordinate.Latitude < -90 || coordinate.Latitude > 90 {
+		return AmapCoordinate{}, fmt.Errorf("parseAmapCoordinate: Latitude must be between -90 and 90")
+	}
+	if coordinate.Longitude == 0 && coordinate.Latitude == 0 {
+		return AmapCoordinate{}, fmt.Errorf("parseAmapCoordinate: Longitude and latitude cannot both be zero")
+	}
 	return coordinate, nil
 }
 

@@ -3,6 +3,7 @@ package auth
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/Happy2018new/evercare-journey-backend/database/define"
 	"github.com/Happy2018new/evercare-journey-backend/service/general"
@@ -47,11 +48,12 @@ func HandleLogin(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusOK, UserLoginResponse{
 			BasicResponseInfo: general.FromGeneralError(
-				define.NewGeneralError("HandleLogin", err, define.LangKeyGeneralInvalidRequest),
+				define.NewGeneralError("HandleLogin", err, define.LangKeyAuthRequestBodyInvalid),
 			),
 		})
 		return
 	}
+	request.AccountPhone = strings.TrimSpace(request.AccountPhone)
 
 	switch request.RequestType {
 	case RequestTypeLoginRequest:
@@ -70,7 +72,7 @@ func HandleLogin(c *gin.Context) {
 			define.NewGeneralError(
 				"HandleLogin",
 				fmt.Errorf("Unsupported request type %d", request.RequestType),
-				define.LangKeyGeneralInvalidRequest,
+				define.LangKeyLoginRequestTypeInvalid,
 			),
 		),
 	})
@@ -92,7 +94,7 @@ func HandleSessionCheck(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusOK, SessionCheckResponse{
 			BasicResponseInfo: general.FromGeneralError(
-				define.NewGeneralError("HandleSessionCheck", err, define.LangKeyGeneralInvalidRequest),
+				define.NewGeneralError("HandleSessionCheck", err, define.LangKeyAuthRequestBodyInvalid),
 			),
 		})
 		return

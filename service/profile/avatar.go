@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/Happy2018new/evercare-journey-backend/database/define"
 	"github.com/Happy2018new/evercare-journey-backend/database/handle"
@@ -37,11 +38,42 @@ func handleAvatarQuery(c *gin.Context, request AvatarQueryRequest) {
 		})
 		return
 	}
+	if !found {
+		c.JSON(http.StatusOK, AvatarQueryResponse{
+			BasicResponseInfo: general.FromGeneralError(
+				define.NewGeneralError("handleAvatarQuery", fmt.Errorf("authenticated user was not found"), define.LangKeyGeneralInvalidSession),
+			),
+		})
+		return
+	}
+	if user.ProfileData.UserUniqueID != user.UserUniqueID {
+		c.JSON(http.StatusOK, AvatarQueryResponse{
+			BasicResponseInfo: general.FromGeneralError(
+				define.NewGeneralError("handleAvatarQuery", fmt.Errorf("user profile row is missing"), define.LangKeyUserQueryUnknownErr),
+			),
+		})
+		return
+	}
+	if strings.TrimSpace(user.ProfileData.AvatarItemID) == "" {
+		c.JSON(http.StatusOK, AvatarQueryResponse{
+			BasicResponseInfo: general.SuccResponseInfo(),
+			AvatarSet:         false,
+		})
+		return
+	}
 
-	pngData, found := environment.DB.ResourceHandle().LoadResource(
+	pngData, found, resourceErr := environment.DB.ResourceHandle().LoadResourceWithError(
 		handle.ResourceTypeUserAvatar,
 		user.ProfileData.AvatarItemID,
 	)
+	if resourceErr != nil {
+		c.JSON(http.StatusOK, AvatarQueryResponse{
+			BasicResponseInfo: general.FromGeneralError(
+				define.NewGeneralError("handleAvatarQuery", resourceErr, define.LangKeyAvatarQueryUnknownErr),
+			),
+		})
+		return
+	}
 	if !found {
 		c.JSON(http.StatusOK, AvatarQueryResponse{
 			BasicResponseInfo: general.SuccResponseInfo(),
@@ -125,7 +157,7 @@ func handleAvatarUpload(c *gin.Context, request AvatarUploadRequest) {
 	if !found {
 		c.JSON(http.StatusOK, AvatarUploadResponse{
 			BasicResponseInfo: general.FromGeneralError(
-				define.NewGeneralError("handleAvatarUpload", fmt.Errorf("Should never happened (mark 0)"), define.LangKeyGeneralUnknownErr),
+				define.NewGeneralError("handleAvatarUpload", fmt.Errorf("authenticated user was not found"), define.LangKeyGeneralInvalidSession),
 			),
 		})
 		return
@@ -161,7 +193,10 @@ func handleAvatarUpload(c *gin.Context, request AvatarUploadRequest) {
 			result := tx.Model(&define.UserProfile{}).
 				Where("user_unique_id = ?", user.UserUniqueID).
 				UpdateColumn("avatar_item_id", avatarItemID)
-			if result.Error != nil {
+			if result.Error != nil || result.RowsAffected != 1 {
+				if result.Error == nil {
+					result.Error = fmt.Errorf("avatar profile row was not updated")
+				}
 				return define.NewGeneralError("", result.Error, define.LangKeyAvatarUpdateFailErr)
 			}
 
@@ -177,5 +212,5 @@ func handleAvatarUpload(c *gin.Context, request AvatarUploadRequest) {
 	}
 
 	c.JSON(http.StatusOK, AvatarUploadResponse{BasicResponseInfo: general.SuccResponseInfo()})
-	_, _, _ = auth.LoadUser(request.UserIdentity, true)
+	auth.InvalidateUserCache(request.UserIdentity)
 }

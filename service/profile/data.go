@@ -1,8 +1,10 @@
 package profile
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/Happy2018new/evercare-journey-backend/database/define"
 	"github.com/Happy2018new/evercare-journey-backend/database/handle"
@@ -29,6 +31,14 @@ func handleQueryProfileData(c *gin.Context, request ProfileDataRequest) {
 		})
 		return
 	}
+	if user.ProfileData.UserUniqueID != user.UserUniqueID {
+		c.JSON(http.StatusOK, ProfileDataResponse{
+			BasicResponseInfo: general.FromGeneralError(
+				define.NewGeneralError("handleQueryProfileData", fmt.Errorf("user profile row is missing"), define.LangKeyUserQueryUnknownErr),
+			),
+		})
+		return
+	}
 	c.JSON(http.StatusOK, ProfileDataResponse{
 		BasicResponseInfo: general.SuccResponseInfo(),
 		Name:              user.AccountName,
@@ -47,7 +57,7 @@ func handleUpdateProfileExtraData(c *gin.Context, request ProfileDataRequest) {
 				define.NewGeneralError(
 					"handleUpdateProfileExtraData",
 					fmt.Errorf("Invalid user gender %d", request.Gender),
-					define.LangKeyGeneralInvalidRequest,
+					define.LangKeyProfileGenderInvalid,
 				),
 			),
 		})
@@ -62,7 +72,7 @@ func handleUpdateProfileExtraData(c *gin.Context, request ProfileDataRequest) {
 				define.NewGeneralError(
 					"handleUpdateProfileExtraData",
 					fmt.Errorf("Invalid user age %d", request.Age),
-					define.LangKeyGeneralInvalidRequest,
+					define.LangKeyProfileAgeInvalid,
 				),
 			),
 		})
@@ -73,8 +83,15 @@ func handleUpdateProfileExtraData(c *gin.Context, request ProfileDataRequest) {
 		environment.DB.Database(),
 		handle.QueryUserActionSearchByUserIdentity,
 		request.UserIdentity,
-		0,
+		handle.UpdateUserLockFlagLockProfile,
 		func(tx *gorm.DB, user *define.UserData) *define.GeneralError {
+			// MySQL may report zero affected rows for a valid no-op update.
+			// Treat unchanged profile data as success instead of surfacing a
+			// misleading persistence error to the client.
+			if user.ProfileData.UserUniqueID == user.UserUniqueID &&
+				user.ProfileData.Gender == request.Gender && user.ProfileData.Age == request.Age {
+				return nil
+			}
 			result := tx.Model(&define.UserProfile{}).
 				Where("user_unique_id = ?", user.UserUniqueID).
 				Updates(map[string]any{
@@ -83,6 +100,9 @@ func handleUpdateProfileExtraData(c *gin.Context, request ProfileDataRequest) {
 				})
 			if result.Error != nil {
 				return define.NewGeneralError("", result.Error, define.LangKeyUserUpdateProfileFailErr)
+			}
+			if result.RowsAffected != 1 {
+				return define.NewGeneralError("", fmt.Errorf("user profile row was not updated"), define.LangKeyUserUpdateProfileFailErr)
 			}
 			return nil
 		},
@@ -95,10 +115,11 @@ func handleUpdateProfileExtraData(c *gin.Context, request ProfileDataRequest) {
 	}
 
 	c.JSON(http.StatusOK, ProfileDataResponse{BasicResponseInfo: general.SuccResponseInfo()})
-	_, _, _ = auth.LoadUser(request.UserIdentity, true)
+	auth.InvalidateUserCache(request.UserIdentity)
 }
 
 func handleUpdateProfileName(c *gin.Context, request ProfileDataRequest) {
+	request.Name = strings.TrimSpace(request.Name)
 	if valid, reason := define.IsValidAccountName(request.Name); !valid {
 		c.JSON(http.StatusOK, ProfileDataResponse{
 			BasicResponseInfo: general.FromGeneralError(
@@ -112,13 +133,22 @@ func handleUpdateProfileName(c *gin.Context, request ProfileDataRequest) {
 		environment.DB.Database(),
 		handle.QueryUserActionSearchByUserIdentity,
 		request.UserIdentity,
-		0,
+		handle.UpdateUserLockFlagLockData,
 		func(tx *gorm.DB, user *define.UserData) *define.GeneralError {
+			if user.AccountName == request.Name {
+				return nil
+			}
 			result := tx.Model(&define.UserData{}).
 				Where("user_unique_id = ?", user.UserUniqueID).
 				UpdateColumn("account_name", request.Name)
 			if result.Error != nil {
+				if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
+					return define.NewGeneralError("", result.Error, define.LangKeyUserUpdateNameUsedErr)
+				}
 				return define.NewGeneralError("", result.Error, define.LangKeyUserUpdateProfileFailErr)
+			}
+			if result.RowsAffected != 1 {
+				return define.NewGeneralError("", fmt.Errorf("user account row was not updated"), define.LangKeyUserUpdateProfileFailErr)
 			}
 			return nil
 		},
@@ -131,5 +161,5 @@ func handleUpdateProfileName(c *gin.Context, request ProfileDataRequest) {
 	}
 
 	c.JSON(http.StatusOK, ProfileDataResponse{BasicResponseInfo: general.SuccResponseInfo()})
-	_, _, _ = auth.LoadUser(request.UserIdentity, true)
+	auth.InvalidateUserCache(request.UserIdentity)
 }

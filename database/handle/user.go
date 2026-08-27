@@ -167,6 +167,9 @@ func (u *UserHandle) UpdateLoginToken(tx *gorm.DB, userIdentity string, newToken
 			if result.Error != nil {
 				return define.NewGeneralError("", result.Error, define.LangKeyUserUpdateLoginTokenErr)
 			}
+			if result.RowsAffected != 1 {
+				return define.NewGeneralError("", fmt.Errorf("user session row was not updated"), define.LangKeyUserUpdateLoginTokenErr)
+			}
 			return nil
 		},
 	)
@@ -192,6 +195,9 @@ func (u *UserHandle) ExtendSession(tx *gorm.DB, userIdentity string) *define.Gen
 				)
 			if result.Error != nil {
 				return define.NewGeneralError("", result.Error, define.LangKeyUserSessionExtendErr)
+			}
+			if result.RowsAffected != 1 {
+				return define.NewGeneralError("", fmt.Errorf("user session row was not extended"), define.LangKeyUserSessionExtendErr)
 			}
 			return nil
 		},

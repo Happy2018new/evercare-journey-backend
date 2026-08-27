@@ -52,6 +52,9 @@ func SendSMSVerifyCode(accountPhone string, verifyCode string, expireInMinutes s
 		return fmt.Errorf("SendSMSVerifyCode: %w", err)
 	}
 	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		return fmt.Errorf("SendSMSVerifyCode: Request send sms verify code failed; status = %d", response.StatusCode)
+	}
 
 	rawResp, err := io.ReadAll(response.Body)
 	if err != nil {

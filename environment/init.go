@@ -17,7 +17,7 @@ func init() {
 		MySqlDatabaseAddress,
 		MySqlDatabaseName,
 	)
-	mysqlDB, err := gorm.Open(mysql.Open(dsn))
+	mysqlDB, err := gorm.Open(mysql.Open(dsn), &gorm.Config{TranslateError: true})
 	if err != nil {
 		panic(fmt.Errorf("Failed to connect to MySQL: %w", err))
 	}

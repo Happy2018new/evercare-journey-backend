@@ -89,13 +89,27 @@ func DiscardCaptchaTransaction(transactionUUID string) {
 }
 
 func ConsumeCaptchaTransaction(resp *CaptchaResponse) (status uint8, ctx any) {
+	if resp == nil {
+		return CaptchaConsumeStatusFailed, nil
+	}
+	defer func() {
+		if recover() != nil {
+			DiscardCaptchaTransaction(resp.TransactionUUID)
+			status = CaptchaConsumeStatusFailed
+			ctx = nil
+		}
+	}()
 	var succ bool
 
 	val, ok := cachedCaptchaTransaction.Get(resp.TransactionUUID)
 	if !ok {
 		return CaptchaConsumeStatusExpired, nil
 	}
-	tran := val.(*CaptchaTransaction)
+	tran, valid := val.(*CaptchaTransaction)
+	if !valid || tran == nil {
+		DiscardCaptchaTransaction(resp.TransactionUUID)
+		return CaptchaConsumeStatusFailed, nil
+	}
 	if time.Now().Unix()-tran.createUnixTime < MinConsumeTranInterval {
 		return CaptchaConsumeStatusRetry, tran.captchaContext
 	}
@@ -148,6 +162,9 @@ func OpenNewCaptchaTransaction(ctx any) (tran *CaptchaTransaction, generalErr *d
 }
 
 func MakeCaptchaRequest(tran *CaptchaTransaction) (request *CaptchaRequest, err error) {
+	if tran == nil || tran.captchaData == nil {
+		return nil, fmt.Errorf("MakeCaptchaRequest: captcha transaction is empty")
+	}
 	request = &CaptchaRequest{
 		TransactionUUID: tran.transactionUUID,
 		CaptchaType:     tran.captchaType,
@@ -156,20 +173,43 @@ func MakeCaptchaRequest(tran *CaptchaTransaction) (request *CaptchaRequest, err 
 	switch tran.CaptchaType() {
 	case CaptchaTypeClickText:
 		request.MasterImage, err = tran.captchaData.(click.CaptchaData).GetMasterImage().ToBase64()
+		if err != nil {
+			return nil, fmt.Errorf("MakeCaptchaRequest: encode master image: %w", err)
+		}
 		request.SecondImage, err = tran.captchaData.(click.CaptchaData).GetThumbImage().ToBase64()
+		if err != nil {
+			return nil, fmt.Errorf("MakeCaptchaRequest: encode thumb image: %w", err)
+		}
 	case CaptchaTypeSlideTile:
 		request.MasterImage, err = tran.captchaData.(slide.CaptchaData).GetMasterImage().ToBase64()
+		if err != nil {
+			return nil, fmt.Errorf("MakeCaptchaRequest: encode master image: %w", err)
+		}
 		request.SecondImage, err = tran.captchaData.(slide.CaptchaData).GetTileImage().ToBase64()
+		if err != nil {
+			return nil, fmt.Errorf("MakeCaptchaRequest: encode tile image: %w", err)
+		}
 		request.SlideTilePosy = tran.captchaData.(slide.CaptchaData).GetData().Y
 	case CaptchaTypeSlideDrop:
 		request.MasterImage, err = tran.captchaData.(slide.CaptchaData).GetMasterImage().ToBase64()
+		if err != nil {
+			return nil, fmt.Errorf("MakeCaptchaRequest: encode master image: %w", err)
+		}
 		request.SecondImage, err = tran.captchaData.(slide.CaptchaData).GetTileImage().ToBase64()
+		if err != nil {
+			return nil, fmt.Errorf("MakeCaptchaRequest: encode tile image: %w", err)
+		}
 	case CaptchaTypeRotateImg:
 		request.MasterImage, err = tran.captchaData.(rotate.CaptchaData).GetMasterImage().ToBase64()
+		if err != nil {
+			return nil, fmt.Errorf("MakeCaptchaRequest: encode master image: %w", err)
+		}
 		request.SecondImage, err = tran.captchaData.(rotate.CaptchaData).GetThumbImage().ToBase64()
-	}
-	if err != nil {
-		return nil, fmt.Errorf("MakeCaptchaRequest: %w", err)
+		if err != nil {
+			return nil, fmt.Errorf("MakeCaptchaRequest: encode thumb image: %w", err)
+		}
+	default:
+		return nil, fmt.Errorf("MakeCaptchaRequest: unsupported captcha type %d", tran.CaptchaType())
 	}
 
 	return

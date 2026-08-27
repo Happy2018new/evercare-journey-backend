@@ -23,7 +23,12 @@ func NewResourceHandle(db *bbolt.DB) *ResourceHandle {
 }
 
 func (r *ResourceHandle) LoadResource(typeName string, resKey string) (result []byte, found bool) {
-	_ = r.db.View(func(tx *bbolt.Tx) error {
+	result, found, _ = r.LoadResourceWithError(typeName, resKey)
+	return result, found
+}
+
+func (r *ResourceHandle) LoadResourceWithError(typeName string, resKey string) (result []byte, found bool, err error) {
+	err = r.db.View(func(tx *bbolt.Tx) error {
 		bucket := tx.Bucket([]byte(typeName))
 		if bucket == nil {
 			return nil
@@ -34,7 +39,10 @@ func (r *ResourceHandle) LoadResource(typeName string, resKey string) (result []
 		}
 		return nil
 	})
-	return result, found
+	if err != nil {
+		return nil, false, fmt.Errorf("LoadResource: %w", err)
+	}
+	return result, found, nil
 }
 
 func (r *ResourceHandle) SaveResource(typeName string, resKey string, data []byte) error {

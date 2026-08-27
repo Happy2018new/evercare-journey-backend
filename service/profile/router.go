@@ -3,6 +3,7 @@ package profile
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/Happy2018new/evercare-journey-backend/database/define"
 	"github.com/Happy2018new/evercare-journey-backend/service/auth"
@@ -38,7 +39,7 @@ func HandleProfileData(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusOK, ProfileDataResponse{
 			BasicResponseInfo: general.FromGeneralError(
-				define.NewGeneralError("HandleProfileData", err, define.LangKeyGeneralInvalidRequest),
+				define.NewGeneralError("HandleProfileData", err, define.LangKeyProfileRequestBodyInvalid),
 			),
 		})
 		return
@@ -77,7 +78,7 @@ func HandleProfileData(c *gin.Context) {
 			define.NewGeneralError(
 				"HandleProfileData",
 				fmt.Errorf("Unsupported profile data request action %d", request.Action),
-				define.LangKeyGeneralInvalidRequest,
+				define.LangKeyProfileActionInvalid,
 			),
 		),
 	})
@@ -108,7 +109,7 @@ func HandleAvatarQuery(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusOK, AvatarQueryResponse{
 			BasicResponseInfo: general.FromGeneralError(
-				define.NewGeneralError("HandleAvatarQuery", err, define.LangKeyGeneralInvalidRequest),
+				define.NewGeneralError("HandleAvatarQuery", err, define.LangKeyProfileRequestBodyInvalid),
 			),
 		})
 		return
@@ -129,6 +130,27 @@ func HandleAvatarQuery(c *gin.Context) {
 		})
 		return
 	}
+	if request.QueryAction != AvatarQueryActionGetChecksum && request.QueryAction != AvatarQueryActionGetImageData {
+		c.JSON(http.StatusOK, AvatarQueryResponse{
+			BasicResponseInfo: general.FromGeneralError(
+				define.NewGeneralError("HandleAvatarQuery", fmt.Errorf("unsupported query action %d", request.QueryAction), define.LangKeyAvatarQueryActionInvalid),
+			),
+		})
+		return
+	}
+	targetIdentity := strings.TrimSpace(request.QueryUserIdentity)
+	if targetIdentity == "" {
+		targetIdentity = request.UserIdentity
+	}
+	if !strings.EqualFold(targetIdentity, request.UserIdentity) {
+		c.JSON(http.StatusOK, AvatarQueryResponse{
+			BasicResponseInfo: general.FromGeneralError(
+				define.NewGeneralError("HandleAvatarQuery", fmt.Errorf("avatar target does not belong to current session"), define.LangKeyAvatarQueryUserInvalid),
+			),
+		})
+		return
+	}
+	request.QueryUserIdentity = targetIdentity
 
 	handleAvatarQuery(c, request)
 }
@@ -149,7 +171,7 @@ func HandleAvatarUpload(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusOK, AvatarUploadResponse{
 			BasicResponseInfo: general.FromGeneralError(
-				define.NewGeneralError("HandleAvatarUpload", err, define.LangKeyGeneralInvalidRequest),
+				define.NewGeneralError("HandleAvatarUpload", err, define.LangKeyProfileRequestBodyInvalid),
 			),
 		})
 		return
@@ -166,6 +188,14 @@ func HandleAvatarUpload(c *gin.Context) {
 		c.JSON(http.StatusOK, AvatarUploadResponse{
 			BasicResponseInfo: general.FromGeneralError(
 				define.NewGeneralError("HandleAvatarUpload", fmt.Errorf("Failed to validate current session"), define.LangKeyGeneralInvalidSession),
+			),
+		})
+		return
+	}
+	if len(request.ImageData) == 0 {
+		c.JSON(http.StatusOK, AvatarUploadResponse{
+			BasicResponseInfo: general.FromGeneralError(
+				define.NewGeneralError("HandleAvatarUpload", fmt.Errorf("image data cannot be empty"), define.LangKeyAvatarUploadDataInvalid),
 			),
 		})
 		return
