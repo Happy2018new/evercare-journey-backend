@@ -1,19 +1,23 @@
 // The preset command initializes the application's tables and imports the
-// bundled nationwide hot-place pack. Run it from the repository root with:
+// bundled nationwide hot-place pack. It only reads the embedded JSON and image
+// assets: it never calls Amap or another map-provider HTTP service. Refresh
+// Amap data separately with `go run ./preset/collector -amap` when needed.
+// The default res.db location is the repository root, regardless of the
+// caller's current working directory:
 //
 //	go run ./preset
 package main
 
 import (
 	"bytes"
+	"embed"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"image"
 	_ "image/jpeg"
 	"log"
-	"os"
-	"path/filepath"
+	"path"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -26,11 +30,15 @@ import (
 )
 
 const (
-	presetDirectory    = "preset"
-	presetProviderName = "preset"
-	imageWidth         = 1920
-	imageHeight        = 1080
+	imageWidth  = 1920
+	imageHeight = 1080
 )
+
+// presetAssets keeps the preset self-contained, so the command does not
+// depend on the caller's current working directory.
+//
+//go:embed hot_places.json place_catalog.json image_sources.json images/*.jpg
+var presetAssets embed.FS
 
 type hotPlace struct {
 	HotPlaceUniqueID uint32 `json:"HotPlaceUniqueID"`
@@ -42,13 +50,19 @@ type hotPlace struct {
 }
 
 type placeCatalogItem struct {
-	PlaceIdentity string  `json:"place_identity"`
-	Name          string  `json:"name"`
-	Province      string  `json:"province"`
-	City          string  `json:"city"`
-	Longitude     float64 `json:"longitude"`
-	Latitude      float64 `json:"latitude"`
-	Category      string  `json:"category"`
+	PlaceIdentity   string  `json:"place_identity"`
+	ProviderName    string  `json:"provider_name"`
+	ProviderPlaceID string  `json:"provider_place_id"`
+	Name            string  `json:"name"`
+	CategoryCode    string  `json:"category_code"`
+	CategoryName    string  `json:"category_name"`
+	FullAddress     string  `json:"full_address"`
+	Province        string  `json:"province"`
+	City            string  `json:"city"`
+	District        string  `json:"district"`
+	AdCode          string  `json:"ad_code"`
+	Longitude       float64 `json:"longitude"`
+	Latitude        float64 `json:"latitude"`
 }
 
 type imageSource struct {
@@ -65,7 +79,7 @@ type presetRecord struct {
 }
 
 func main() {
-	records, err := loadPreset(presetDirectory)
+	records, err := loadPreset()
 	if err != nil {
 		log.Fatalf("load preset: %v", err)
 	}
@@ -97,17 +111,17 @@ func main() {
 	log.Printf("initialized database and imported %d hot places with %d images", len(records), len(records))
 }
 
-func loadPreset(directory string) ([]presetRecord, error) {
+func loadPreset() ([]presetRecord, error) {
 	var hotPlaces []hotPlace
 	var places []placeCatalogItem
 	var sources []imageSource
-	if err := readJSON(filepath.Join(directory, "hot_places.json"), &hotPlaces); err != nil {
+	if err := readJSON("hot_places.json", &hotPlaces); err != nil {
 		return nil, err
 	}
-	if err := readJSON(filepath.Join(directory, "place_catalog.json"), &places); err != nil {
+	if err := readJSON("place_catalog.json", &places); err != nil {
 		return nil, err
 	}
-	if err := readJSON(filepath.Join(directory, "image_sources.json"), &sources); err != nil {
+	if err := readJSON("image_sources.json", &sources); err != nil {
 		return nil, err
 	}
 	if len(hotPlaces) == 0 || len(hotPlaces) != len(places) || len(hotPlaces) != len(sources) {
@@ -115,6 +129,7 @@ func loadPreset(directory string) ([]presetRecord, error) {
 	}
 
 	seenPlaceIDs := make(map[string]struct{}, len(places))
+	seenProviderPlaceIDs := make(map[string]struct{}, len(places))
 	for index, place := range places {
 		if err := validateUUID("place_catalog place_identity", place.PlaceIdentity); err != nil {
 			return nil, fmt.Errorf("place_catalog[%d]: %w", index, err)
@@ -122,10 +137,20 @@ func loadPreset(directory string) ([]presetRecord, error) {
 		if _, exists := seenPlaceIDs[place.PlaceIdentity]; exists {
 			return nil, fmt.Errorf("place_catalog[%d] duplicates place_identity %q", index, place.PlaceIdentity)
 		}
-		if strings.TrimSpace(place.Name) == "" || strings.TrimSpace(place.Category) == "" {
-			return nil, fmt.Errorf("place_catalog[%d] has empty name or category", index)
+		if place.ProviderName != define.PlaceProviderNameDefault || strings.TrimSpace(place.ProviderPlaceID) == "" || len(place.ProviderPlaceID) > 64 {
+			return nil, fmt.Errorf("place_catalog[%d] must contain an Amap provider name and 1-64 character provider place ID", index)
+		}
+		if _, exists := seenProviderPlaceIDs[place.ProviderPlaceID]; exists {
+			return nil, fmt.Errorf("place_catalog[%d] duplicates provider_place_id %q", index, place.ProviderPlaceID)
+		}
+		if strings.TrimSpace(place.Name) == "" || strings.TrimSpace(place.CategoryCode) == "" || strings.TrimSpace(place.CategoryName) == "" {
+			return nil, fmt.Errorf("place_catalog[%d] has empty Amap name or category", index)
+		}
+		if err := validateCuratedCategoryName(place.CategoryName); err != nil {
+			return nil, fmt.Errorf("place_catalog[%d] has invalid category_name: %w", index, err)
 		}
 		seenPlaceIDs[place.PlaceIdentity] = struct{}{}
+		seenProviderPlaceIDs[place.ProviderPlaceID] = struct{}{}
 	}
 
 	seenHotIDs := make(map[string]struct{}, len(hotPlaces))
@@ -165,7 +190,7 @@ func loadPreset(directory string) ([]presetRecord, error) {
 			return nil, fmt.Errorf("hot_places[%d] RecommandDetail has %d characters; expected 700-2048", index, detailRunes)
 		}
 
-		imageData, err := loadImage(directory, sources[index])
+		imageData, err := loadImage(sources[index])
 		if err != nil {
 			return nil, fmt.Errorf("hot_places[%d] %s: %w", index, item.RecommendTitle, err)
 		}
@@ -190,14 +215,16 @@ func upsertPlace(tx *gorm.DB, item placeCatalogItem) error {
 
 	now := time.Now().Unix()
 	values := map[string]any{
+		"provider_name":     item.ProviderName,
+		"provider_place_id": item.ProviderPlaceID,
 		"place_name":        item.Name,
-		"category_code":     "preset",
-		"category_name":     item.Category,
-		"full_address":      strings.TrimSpace(item.Province + item.City + item.Name),
+		"category_code":     item.CategoryCode,
+		"category_name":     item.CategoryName,
+		"full_address":      item.FullAddress,
 		"in_which_province": item.Province,
 		"in_which_city":     item.City,
-		"in_which_district": "",
-		"ad_code":           "",
+		"in_which_district": item.District,
+		"ad_code":           item.AdCode,
 		"longitude":         item.Longitude,
 		"latitude":          item.Latitude,
 		"coordinate_system": define.PlaceCoordinateSystemDefault,
@@ -207,14 +234,16 @@ func upsertPlace(tx *gorm.DB, item placeCatalogItem) error {
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		place := define.PlaceInfo{
 			PlaceIdentity:    item.PlaceIdentity,
-			ProviderName:     presetProviderName,
-			ProviderPlaceID:  item.PlaceIdentity,
+			ProviderName:     item.ProviderName,
+			ProviderPlaceID:  item.ProviderPlaceID,
 			PlaceName:        item.Name,
-			CategoryCode:     "preset",
-			CategoryName:     item.Category,
-			FullAddress:      strings.TrimSpace(item.Province + item.City + item.Name),
+			CategoryCode:     item.CategoryCode,
+			CategoryName:     item.CategoryName,
+			FullAddress:      item.FullAddress,
 			InWhichProvince:  item.Province,
 			InWhichCity:      item.City,
+			InWhichDistrict:  item.District,
+			AdCode:           item.AdCode,
 			Longitude:        item.Longitude,
 			Latitude:         item.Latitude,
 			CoordinateSystem: define.PlaceCoordinateSystemDefault,
@@ -226,8 +255,8 @@ func upsertPlace(tx *gorm.DB, item placeCatalogItem) error {
 		}
 		return nil
 	}
-	if existing.ProviderName != presetProviderName || existing.ProviderPlaceID != item.PlaceIdentity {
-		return fmt.Errorf("place %s belongs to provider %q/%q, not this preset", item.PlaceIdentity, existing.ProviderName, existing.ProviderPlaceID)
+	if existing.ProviderName != "" && existing.ProviderName != "preset" && existing.ProviderName != item.ProviderName {
+		return fmt.Errorf("place %s belongs to provider %q/%q, not Amap", item.PlaceIdentity, existing.ProviderName, existing.ProviderPlaceID)
 	}
 	if err := tx.Model(&existing).Updates(values).Error; err != nil {
 		return fmt.Errorf("update place %s: %w", item.PlaceIdentity, err)
@@ -277,25 +306,24 @@ func upsertHotPlace(tx *gorm.DB, item hotPlace) error {
 	return nil
 }
 
-func loadImage(directory string, source imageSource) ([]byte, error) {
+func loadImage(source imageSource) ([]byte, error) {
 	if strings.TrimSpace(source.Slug) == "" || strings.TrimSpace(source.ImageFile) == "" {
 		return nil, errors.New("image source has an empty slug or image file")
 	}
-	relativePath := filepath.Clean(filepath.FromSlash(source.ImageFile))
-	if filepath.IsAbs(relativePath) || relativePath == "." || relativePath == ".." || strings.HasPrefix(relativePath, ".."+string(os.PathSeparator)) {
+	assetPath := path.Clean(source.ImageFile)
+	if path.IsAbs(assetPath) || assetPath == "." || assetPath == ".." || strings.HasPrefix(assetPath, "../") {
 		return nil, fmt.Errorf("invalid image file path %q", source.ImageFile)
 	}
-	imagePath := filepath.Join(directory, relativePath)
-	data, err := os.ReadFile(imagePath)
+	data, err := presetAssets.ReadFile(assetPath)
 	if err != nil {
-		return nil, fmt.Errorf("read %s: %w", imagePath, err)
+		return nil, fmt.Errorf("read %s: %w", assetPath, err)
 	}
 	config, format, err := image.DecodeConfig(bytes.NewReader(data))
 	if err != nil {
-		return nil, fmt.Errorf("decode %s: %w", imagePath, err)
+		return nil, fmt.Errorf("decode %s: %w", assetPath, err)
 	}
 	if format != "jpeg" || config.Width != imageWidth || config.Height != imageHeight {
-		return nil, fmt.Errorf("%s is %s %dx%d; expected jpeg %dx%d", imagePath, format, config.Width, config.Height, imageWidth, imageHeight)
+		return nil, fmt.Errorf("%s is %s %dx%d; expected jpeg %dx%d", assetPath, format, config.Width, config.Height, imageWidth, imageHeight)
 	}
 	if source.OutputWidth != imageWidth || source.OutputHeight != imageHeight {
 		return nil, fmt.Errorf("source metadata for %s must declare %dx%d output", source.ImageFile, imageWidth, imageHeight)
@@ -304,7 +332,7 @@ func loadImage(directory string, source imageSource) ([]byte, error) {
 }
 
 func readJSON(path string, target any) error {
-	data, err := os.ReadFile(path)
+	data, err := presetAssets.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("read %s: %w", path, err)
 	}
@@ -318,6 +346,38 @@ func validateUUID(field string, value string) error {
 	parsed, err := uuid.Parse(value)
 	if err != nil || parsed == uuid.Nil {
 		return fmt.Errorf("%s must be a non-empty UUID", field)
+	}
+	return nil
+}
+
+func validateCuratedCategoryName(value string) error {
+	if strings.Contains(value, "|") {
+		return errors.New("must not contain the provider multi-category separator |")
+	}
+	labels := strings.Split(value, ";")
+	if len(labels) != 3 {
+		return fmt.Errorf("must contain exactly 3 semicolon-delimited labels, got %d", len(labels))
+	}
+	providerLabels := map[string]struct{}{
+		"风景名胜": {}, "风景名胜相关": {}, "国家级景点": {}, "省级景点": {},
+		"地名地址信息": {}, "自然地名": {}, "热点地名": {},
+		"生活服务": {}, "生活服务场所": {}, "科教文化服务": {},
+	}
+	seen := make(map[string]struct{}, len(labels))
+	for _, label := range labels {
+		if label == "" || label != strings.TrimSpace(label) {
+			return errors.New("labels must be non-empty and must not have surrounding whitespace")
+		}
+		if utf8.RuneCountInString(label) > 16 {
+			return fmt.Errorf("label %q exceeds 16 characters", label)
+		}
+		if _, exists := seen[label]; exists {
+			return fmt.Errorf("label %q is repeated", label)
+		}
+		if _, isProviderLabel := providerLabels[label]; isProviderLabel {
+			return fmt.Errorf("label %q is an Amap provider hierarchy label", label)
+		}
+		seen[label] = struct{}{}
 	}
 	return nil
 }

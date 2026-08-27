@@ -8,6 +8,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -16,6 +17,7 @@ import (
 	"image/draw"
 	"image/jpeg"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"os"
@@ -26,6 +28,8 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/Happy2018new/evercare-journey-backend/database/define"
+	"github.com/Happy2018new/evercare-journey-backend/utils"
 	"github.com/google/uuid"
 	xdraw "golang.org/x/image/draw"
 	_ "golang.org/x/image/webp"
@@ -63,13 +67,19 @@ type hotPlace struct {
 }
 
 type placeCatalogItem struct {
-	PlaceIdentity string  `json:"place_identity"`
-	Name          string  `json:"name"`
-	Province      string  `json:"province"`
-	City          string  `json:"city"`
-	Longitude     float64 `json:"longitude"`
-	Latitude      float64 `json:"latitude"`
-	Category      string  `json:"category"`
+	PlaceIdentity   string  `json:"place_identity"`
+	ProviderName    string  `json:"provider_name"`
+	ProviderPlaceID string  `json:"provider_place_id"`
+	Name            string  `json:"name"`
+	CategoryCode    string  `json:"category_code"`
+	CategoryName    string  `json:"category_name"`
+	FullAddress     string  `json:"full_address"`
+	Province        string  `json:"province"`
+	City            string  `json:"city"`
+	District        string  `json:"district"`
+	AdCode          string  `json:"ad_code"`
+	Longitude       float64 `json:"longitude"`
+	Latitude        float64 `json:"latitude"`
 }
 
 type sourceRecord struct {
@@ -198,6 +208,8 @@ func main() {
 	outDir := flag.String("out", "preset", "output directory")
 	validateOnly := flag.Bool("validate", false, "validate an existing output directory without network access")
 	enrichOnly := flag.Bool("enrich", false, "refresh descriptions in an existing output directory without network access")
+	categoriesOnly := flag.Bool("categories", false, "refresh curated category names without network access")
+	amapOnly := flag.Bool("amap", false, "refresh place_catalog.json from Amap POI data")
 	flag.Parse()
 
 	if *validateOnly {
@@ -214,6 +226,22 @@ func main() {
 			os.Exit(1)
 		}
 		fmt.Printf("enriched hot-place descriptions in %s\n", *outDir)
+		return
+	}
+	if *categoriesOnly {
+		if err := refreshCategories(*outDir); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		fmt.Printf("refreshed %d curated category names in %s\n", len(attractions), *outDir)
+		return
+	}
+	if *amapOnly {
+		if err := syncAmapPlaces(*outDir); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		fmt.Printf("refreshed %d Amap POIs in %s\n", len(attractions), *outDir)
 		return
 	}
 	if err := collect(*outDir); err != nil {
@@ -399,15 +427,7 @@ func collect(outDir string) error {
 				PlaceImageItemID: imageIdentity,
 				PlaceIdentity:    placeIdentity,
 			}
-			placeCatalog[index] = placeCatalogItem{
-				PlaceIdentity: placeIdentity,
-				Name:          item.Name,
-				Province:      item.Province,
-				City:          item.City,
-				Longitude:     item.Longitude,
-				Latitude:      item.Latitude,
-				Category:      item.Category,
-			}
+			placeCatalog[index] = placeCatalogItem{PlaceIdentity: placeIdentity}
 			sources[index] = sourceRecord{
 				Slug:               item.Slug,
 				ImageFile:          filepath.ToSlash(filepath.Join("images", imageName)),
@@ -445,7 +465,7 @@ func collect(outDir string) error {
 	if err := writeJSON(filepath.Join(outDir, "image_sources.json"), sources); err != nil {
 		return err
 	}
-	return nil
+	return syncAmapPlaces(outDir)
 }
 
 func writeCollectedWithoutSource(index int, item attraction, outDir string, hotPlaces []hotPlace, placeCatalog []placeCatalogItem, sources []sourceRecord) {
@@ -461,15 +481,7 @@ func writeCollectedWithoutSource(index int, item attraction, outDir string, hotP
 		PlaceImageItemID: imageIdentity,
 		PlaceIdentity:    placeIdentity,
 	}
-	placeCatalog[index] = placeCatalogItem{
-		PlaceIdentity: placeIdentity,
-		Name:          item.Name,
-		Province:      item.Province,
-		City:          item.City,
-		Longitude:     item.Longitude,
-		Latitude:      item.Latitude,
-		Category:      item.Category,
-	}
+	placeCatalog[index] = placeCatalogItem{PlaceIdentity: placeIdentity}
 	sources[index] = sourceRecord{
 		Slug:         item.Slug,
 		ImageFile:    filepath.ToSlash(filepath.Join("images", imageName)),
@@ -499,6 +511,275 @@ func enrichExisting(outDir string) error {
 		return err
 	}
 	return nil
+}
+
+var curatedCategoryNames = map[string]string{
+	"beijing-forbidden-city":               "历史文化;皇家建筑;博物馆",
+	"beijing-great-wall":                   "历史文化;长城古迹;山岳景观",
+	"beijing-temple-of-heaven":             "历史文化;礼制建筑;古典园林",
+	"tianjin-ancient-culture-street":       "历史文化;历史街区;民俗商业",
+	"hebei-chengde-mountain-resort":        "历史文化;皇家园林;宫殿建筑",
+	"hebei-shanhaiguan":                    "历史文化;长城古迹;关隘建筑",
+	"shanxi-yungang-grottoes":              "历史文化;石窟艺术;佛教文化",
+	"shanxi-pingyao-ancient-city":          "历史文化;古城古镇;晋商文化",
+	"inner-mongolia-xiangshawan":           "自然风光;沙漠景观;户外体验",
+	"inner-mongolia-hulunbuir":             "自然风光;草原景观;牧业文化",
+	"liaoning-shenyang-imperial-palace":    "历史文化;皇家建筑;博物馆",
+	"liaoning-dalian-xinghai-square":       "城市景观;城市广场;滨海风光",
+	"jilin-changbai-mountain":              "自然风光;山岳景观;火山地貌",
+	"heilongjiang-saint-sophia":            "历史文化;宗教建筑;城市地标",
+	"shanghai-bund":                        "城市景观;历史建筑;滨江风光",
+	"shanghai-yu-garden":                   "历史文化;古典园林;江南建筑",
+	"jiangsu-humble-administrators-garden": "历史文化;古典园林;江南建筑",
+	"jiangsu-sun-yat-sen-mausoleum":        "历史文化;纪念建筑;山林景观",
+	"zhejiang-west-lake":                   "自然风光;湖泊景观;人文胜迹",
+	"zhejiang-mount-putuo":                 "宗教文化;佛教名山;海岛风光",
+	"anhui-huangshan":                      "自然风光;山岳景观;地质奇观",
+	"anhui-hongcun":                        "历史文化;古村落;徽派建筑",
+	"fujian-gulangyu":                      "海岛风光;历史街区;建筑人文",
+	"fujian-wuyi-mountains":                "自然风光;丹霞地貌;茶文化",
+	"jiangxi-lushan":                       "自然风光;山岳景观;避暑胜地",
+	"jiangxi-sanqing-mountain":             "自然风光;山岳景观;道教文化",
+	"shandong-mount-tai":                   "山岳景观;历史文化;五岳名山",
+	"shandong-qufu-confucius-temple":       "历史文化;儒家文化;古建筑群",
+	"henan-longmen-grottoes":               "历史文化;石窟艺术;佛教文化",
+	"henan-shaolin-temple":                 "宗教文化;佛教寺院;武术文化",
+	"hubei-yellow-crane-tower":             "历史文化;历史名楼;城市地标",
+	"hubei-wudang-mountains":               "宗教文化;道教名山;古建筑群",
+	"hunan-zhangjiajie":                    "自然风光;峰林峡谷;森林公园",
+	"hunan-fenghuang-ancient-town":         "历史文化;古城古镇;民族风情",
+	"hunan-yueyang-tower":                  "历史文化;历史名楼;湖泊景观",
+	"guangdong-danxia-mountain":            "自然风光;丹霞地貌;地质奇观",
+	"guangdong-kaiping-diaolou":            "历史文化;侨乡建筑;古村落",
+	"guangxi-li-river":                     "自然风光;河流山水;喀斯特地貌",
+	"guangxi-longji-rice-terraces":         "自然风光;梯田景观;民族风情",
+	"hainan-wuzhizhou-island":              "海岛风光;海滨度假;水上活动",
+	"hainan-yalong-bay":                    "海滨风光;沙滩海湾;休闲度假",
+	"chongqing-wulong-karst":               "自然风光;喀斯特地貌;峡谷天坑",
+	"chongqing-hongya-cave":                "城市景观;民俗街区;山城夜景",
+	"sichuan-jiuzhaigou":                   "自然风光;湖泊瀑布;高原生态",
+	"sichuan-mount-emei":                   "宗教文化;佛教名山;山岳景观",
+	"sichuan-leshan-buddha":                "历史文化;石刻艺术;佛教文化",
+	"guizhou-huangguoshu-waterfall":        "自然风光;瀑布景观;喀斯特地貌",
+	"guizhou-xijiang-miao-village":         "民族文化;民族村寨;传统建筑",
+	"yunnan-stone-forest":                  "自然风光;喀斯特地貌;民族文化",
+	"yunnan-lijiang-old-town":              "历史文化;古城古镇;民族文化",
+	"yunnan-dali-ancient-town":             "历史文化;古城古镇;民族文化",
+	"tibet-potala-palace":                  "宗教文化;宫殿建筑;历史遗产",
+	"tibet-namtso":                         "自然风光;高原湖泊;雪山草原",
+	"shaanxi-terracotta-army":              "历史文化;考古遗址;博物馆",
+	"shaanxi-mount-hua":                    "自然风光;山岳景观;五岳名山",
+	"shaanxi-xian-city-wall":               "历史文化;城防古迹;古城建筑",
+	"gansu-mogao-caves":                    "历史文化;石窟艺术;丝路文化",
+	"gansu-zhangye-danxia":                 "自然风光;丹霞地貌;地质奇观",
+	"qinghai-qinghai-lake":                 "自然风光;高原湖泊;草原生态",
+	"qinghai-chaka-salt-lake":              "自然风光;盐湖景观;高原风光",
+	"ningxia-shapotou":                     "自然风光;沙漠景观;黄河风光",
+	"ningxia-western-xia-tombs":            "历史文化;陵墓遗址;西夏文化",
+	"xinjiang-kanas":                       "自然风光;高山湖泊;森林草原",
+	"xinjiang-tianchi":                     "自然风光;高山湖泊;雪山森林",
+	"xinjiang-kashgar-old-city":            "历史文化;历史街区;民族风情",
+}
+
+func refreshCategories(outDir string) error {
+	var places []placeCatalogItem
+	if err := readJSON(filepath.Join(outDir, "place_catalog.json"), &places); err != nil {
+		return err
+	}
+	if len(places) != len(attractions) {
+		return fmt.Errorf("expected %d place_catalog records, got %d", len(attractions), len(places))
+	}
+	for index, attraction := range attractions {
+		if places[index].PlaceIdentity != stableUUID("place/"+attraction.Slug) {
+			return fmt.Errorf("place_catalog[%d] does not match attraction %q", index, attraction.Slug)
+		}
+		categoryName, ok := curatedCategoryNames[attraction.Slug]
+		if !ok || strings.TrimSpace(categoryName) == "" {
+			return fmt.Errorf("missing curated category for attraction %q", attraction.Slug)
+		}
+		if err := validateCuratedCategoryName(categoryName); err != nil {
+			return fmt.Errorf("invalid curated category for attraction %q: %w", attraction.Slug, err)
+		}
+		places[index].CategoryName = categoryName
+	}
+	return writeJSON(filepath.Join(outDir, "place_catalog.json"), places)
+}
+
+func syncAmapPlaces(outDir string) error {
+	var places []placeCatalogItem
+	if err := readJSON(filepath.Join(outDir, "place_catalog.json"), &places); err != nil {
+		return err
+	}
+	if len(places) != len(attractions) {
+		return fmt.Errorf("expected %d place_catalog records, got %d", len(attractions), len(places))
+	}
+
+	ctx := context.Background()
+	providerIDs := make(map[string]string, len(places))
+	for index, attraction := range attractions {
+		placeIdentity := strings.TrimSpace(places[index].PlaceIdentity)
+		if _, err := uuid.Parse(placeIdentity); err != nil {
+			return fmt.Errorf("place_catalog[%d] has invalid PlaceIdentity %q", index, placeIdentity)
+		}
+
+		selected, _, ok, err := findAmapPlace(ctx, attraction)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return fmt.Errorf("no confident Amap POI match for %s in %s", attraction.Name, attraction.City)
+		}
+		if priorName, exists := providerIDs[selected.ProviderPlaceID]; exists {
+			return fmt.Errorf("Amap POI %s was selected for both %s and %s", selected.ProviderPlaceID, priorName, attraction.Name)
+		}
+		providerIDs[selected.ProviderPlaceID] = attraction.Name
+		categoryName, exists := curatedCategoryNames[attraction.Slug]
+		if !exists {
+			return fmt.Errorf("missing curated category for attraction %q", attraction.Slug)
+		}
+		if err := validateCuratedCategoryName(categoryName); err != nil {
+			return fmt.Errorf("invalid curated category for attraction %q: %w", attraction.Slug, err)
+		}
+		places[index] = placeCatalogItem{
+			PlaceIdentity:   placeIdentity,
+			ProviderName:    define.PlaceProviderNameDefault,
+			ProviderPlaceID: selected.ProviderPlaceID,
+			Name:            selected.Name,
+			CategoryCode:    selected.CategoryCode,
+			CategoryName:    categoryName,
+			FullAddress:     selected.FullAddress,
+			Province:        selected.ProvinceName,
+			City:            selected.CityName,
+			District:        selected.DistrictName,
+			AdCode:          selected.AdCode,
+			Longitude:       selected.Longitude,
+			Latitude:        selected.Latitude,
+		}
+	}
+
+	if err := writeJSON(filepath.Join(outDir, "place_catalog.json"), places); err != nil {
+		return err
+	}
+	return nil
+}
+
+func findAmapPlace(ctx context.Context, attraction attraction) (utils.AmapPlace, int, bool, error) {
+	candidateSummaries := make([]string, 0, 25)
+	for _, keyword := range amapSearchKeywords(attraction.Name) {
+		result, err := utils.SearchAmapPlaces(ctx, utils.AmapPlaceSearchOptions{
+			Keywords:  keyword,
+			City:      attraction.City,
+			CityLimit: true,
+			Page:      1,
+			PageSize:  25,
+		})
+		if err != nil {
+			return utils.AmapPlace{}, 0, false, fmt.Errorf("search Amap POI for %s (%s): %w", attraction.Name, attraction.City, err)
+		}
+		if selected, score, ok := selectAmapPlace(attraction, result.Places); ok {
+			return selected, score, true, nil
+		}
+		for _, candidate := range result.Places {
+			candidateSummaries = append(candidateSummaries, fmt.Sprintf("%s (%s)", candidate.Name, candidate.ProviderPlaceID))
+		}
+	}
+	return utils.AmapPlace{}, 0, false, fmt.Errorf(
+		"no confident Amap POI match for %s in %s; candidates: %s",
+		attraction.Name,
+		attraction.City,
+		strings.Join(candidateSummaries, "; "),
+	)
+}
+
+func amapSearchKeywords(name string) []string {
+	keywords := []string{name}
+	if alias, found := amapPlaceAliases[name]; found {
+		keywords = append(keywords, alias...)
+	}
+	return keywords
+}
+
+var amapPlaceAliases = map[string][]string{
+	"呼伦贝尔草原":  {"呼伦贝尔大草原"},
+	"沈阳故宫":    {"沈阳故宫博物院"},
+	"大连星海广场":  {"星海广场"},
+	"豫园":      {"上海豫园"},
+	"曲阜三孔":    {"曲阜明故城(三孔)旅游区"},
+	"开平碉楼与村落": {"开平碉楼文化旅游区"},
+	"武隆喀斯特":   {"武隆喀斯特旅游区"},
+	"洪崖洞":     {"洪崖洞民俗风貌区"},
+	"黄果树瀑布":   {"黄果树景区-黄果树大瀑布"},
+	"石林":      {"石林风景区"},
+	"纳木错":     {"纳木措国家风景区"},
+	"沙坡头":     {"沙坡头旅游景区"},
+}
+
+func selectAmapPlace(attraction attraction, candidates []utils.AmapPlace) (utils.AmapPlace, int, bool) {
+	bestScore := 0
+	bestDistance := math.Inf(1)
+	var best utils.AmapPlace
+	for _, candidate := range candidates {
+		score := 0
+		for _, expectedName := range amapSearchKeywords(attraction.Name) {
+			score = maxInt(score, amapNameScore(expectedName, candidate.Name))
+		}
+		if score == 0 {
+			continue
+		}
+		distance := haversineKilometres(attraction.Longitude, attraction.Latitude, candidate.Longitude, candidate.Latitude)
+		if score > bestScore || (score == bestScore && distance < bestDistance) {
+			best, bestScore, bestDistance = candidate, score, distance
+		}
+	}
+	// Only accept exact equality after removing generic scenic-area suffixes.
+	// A containment-only match can select a nearby hotel, station, or visitor
+	// centre instead of the attraction itself.
+	return best, bestScore, bestScore == 100
+}
+
+func maxInt(first, second int) int {
+	if first > second {
+		return first
+	}
+	return second
+}
+
+func amapNameScore(expected string, actual string) int {
+	expected = normalizeAmapPlaceName(expected)
+	actual = normalizeAmapPlaceName(actual)
+	if expected == "" || actual == "" {
+		return 0
+	}
+	if expected == actual {
+		return 100
+	}
+	if strings.Contains(actual, expected) || strings.Contains(expected, actual) {
+		if utf8.RuneCountInString(expected) >= 4 && utf8.RuneCountInString(actual) >= 4 {
+			return 80
+		}
+	}
+	return 0
+}
+
+func normalizeAmapPlaceName(value string) string {
+	replacer := strings.NewReplacer(
+		" ", "", "　", "", "-", "", "·", "", "・", "", "（", "", "）", "", "(", "", ")", "",
+	)
+	value = replacer.Replace(strings.TrimSpace(value))
+	for _, suffix := range []string{"风景名胜区", "国家森林公园", "国家地质公园", "旅游风景区", "文化旅游区", "生态旅游区", "旅游度假区", "风景区", "旅游区", "景区", "公园", "景点"} {
+		value = strings.TrimSuffix(value, suffix)
+	}
+	return value
+}
+
+func haversineKilometres(longitudeA, latitudeA, longitudeB, latitudeB float64) float64 {
+	const earthRadiusKM = 6371.0088
+	toRadians := math.Pi / 180
+	dLat := (latitudeB - latitudeA) * toRadians
+	dLon := (longitudeB - longitudeA) * toRadians
+	a := math.Sin(dLat/2)*math.Sin(dLat/2) +
+		math.Cos(latitudeA*toRadians)*math.Cos(latitudeB*toRadians)*math.Sin(dLon/2)*math.Sin(dLon/2)
+	return earthRadiusKM * 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
 }
 
 var commonsRequestMu sync.Mutex
@@ -710,9 +991,36 @@ func validate(outDir string) error {
 	}
 
 	placeIDs := make(map[string]struct{}, len(places))
+	providerIDs := make(map[string]struct{}, len(places))
 	for index, place := range places {
 		if _, err := uuid.Parse(place.PlaceIdentity); err != nil {
 			return fmt.Errorf("place_catalog[%d] has invalid PlaceIdentity %q", index, place.PlaceIdentity)
+		}
+		if place.ProviderName != define.PlaceProviderNameDefault {
+			return fmt.Errorf("place_catalog[%d] ProviderName is %q, expected %q", index, place.ProviderName, define.PlaceProviderNameDefault)
+		}
+		if providerID := strings.TrimSpace(place.ProviderPlaceID); providerID == "" || len(providerID) > 64 {
+			return fmt.Errorf("place_catalog[%d] has an invalid ProviderPlaceID", index)
+		} else if _, exists := providerIDs[providerID]; exists {
+			return fmt.Errorf("place_catalog[%d] repeats ProviderPlaceID %q", index, providerID)
+		} else {
+			providerIDs[providerID] = struct{}{}
+		}
+		if strings.TrimSpace(place.Name) == "" || strings.TrimSpace(place.CategoryCode) == "" || strings.TrimSpace(place.CategoryName) == "" {
+			return fmt.Errorf("place_catalog[%d] has incomplete Amap POI metadata", index)
+		}
+		expectedCategory, exists := curatedCategoryNames[attractions[index].Slug]
+		if !exists {
+			return fmt.Errorf("missing curated category for attraction %q", attractions[index].Slug)
+		}
+		if place.CategoryName != expectedCategory {
+			return fmt.Errorf("place_catalog[%d] CategoryName is %q, expected curated category %q", index, place.CategoryName, expectedCategory)
+		}
+		if err := validateCuratedCategoryName(place.CategoryName); err != nil {
+			return fmt.Errorf("place_catalog[%d] has invalid CategoryName: %w", index, err)
+		}
+		if math.IsNaN(place.Longitude) || math.IsNaN(place.Latitude) || place.Longitude < -180 || place.Longitude > 180 || place.Latitude < -90 || place.Latitude > 90 {
+			return fmt.Errorf("place_catalog[%d] has invalid Amap coordinates", index)
 		}
 		placeIDs[place.PlaceIdentity] = struct{}{}
 	}
@@ -868,4 +1176,36 @@ func absFloat(value float64) float64 {
 		return -value
 	}
 	return value
+}
+
+func validateCuratedCategoryName(value string) error {
+	if strings.Contains(value, "|") {
+		return errors.New("must not contain the provider multi-category separator |")
+	}
+	labels := strings.Split(value, ";")
+	if len(labels) != 3 {
+		return fmt.Errorf("must contain exactly 3 semicolon-delimited labels, got %d", len(labels))
+	}
+	providerLabels := map[string]struct{}{
+		"风景名胜": {}, "风景名胜相关": {}, "国家级景点": {}, "省级景点": {},
+		"地名地址信息": {}, "自然地名": {}, "热点地名": {},
+		"生活服务": {}, "生活服务场所": {}, "科教文化服务": {},
+	}
+	seen := make(map[string]struct{}, len(labels))
+	for _, label := range labels {
+		if label == "" || label != strings.TrimSpace(label) {
+			return errors.New("labels must be non-empty and must not have surrounding whitespace")
+		}
+		if utf8.RuneCountInString(label) > 16 {
+			return fmt.Errorf("label %q exceeds 16 characters", label)
+		}
+		if _, exists := seen[label]; exists {
+			return fmt.Errorf("label %q is repeated", label)
+		}
+		if _, isProviderLabel := providerLabels[label]; isProviderLabel {
+			return fmt.Errorf("label %q is an Amap provider hierarchy label", label)
+		}
+		seen[label] = struct{}{}
+	}
+	return nil
 }
