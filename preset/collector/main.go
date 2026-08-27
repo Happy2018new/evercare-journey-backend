@@ -671,7 +671,7 @@ func findAmapPlace(ctx context.Context, attraction attraction) (utils.AmapPlace,
 			City:      attraction.City,
 			CityLimit: true,
 			Page:      1,
-			PageSize:  25,
+			PageSize:  3,
 		})
 		if err != nil {
 			return utils.AmapPlace{}, 0, false, fmt.Errorf("search Amap POI for %s (%s): %w", attraction.Name, attraction.City, err)

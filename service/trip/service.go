@@ -11,7 +11,6 @@ import (
 	"github.com/Happy2018new/evercare-journey-backend/environment"
 	"github.com/Happy2018new/evercare-journey-backend/service/general"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -67,7 +66,7 @@ func HandleCreateTrip(c *gin.Context) {
 		if err != nil {
 			return err
 		}
-		created, err = environment.DB.TripHandle().CreateTripWithInfo(
+		createdTrip, createErr := environment.DB.TripHandle().CreateTripWithInfo(
 			tx,
 			user.UserUniqueID,
 			tripName,
@@ -78,7 +77,11 @@ func HandleCreateTrip(c *gin.Context) {
 				{PlaceIdentity: endPlace.PlaceIdentity},
 			},
 		)
-		return err
+		if createErr != nil {
+			return createErr
+		}
+		created = createdTrip
+		return nil
 	})
 	if transactionErr != nil {
 		if created.TripIdentity != "" {
@@ -87,10 +90,14 @@ func HandleCreateTrip(c *gin.Context) {
 			// so a later trip cannot observe an orphaned node list.
 			_ = environment.DB.TripHandle().DeleteTripNodes(created.TripIdentity)
 		}
-		if typed, ok := transactionErr.(*define.GeneralError); ok {
+		if typed, ok := transactionErr.(*define.GeneralError); ok && typed != nil {
 			generalErr = typed
 		} else {
-			generalErr = define.NewGeneralError(source, transactionErr, define.LangKeyTripCreateUnknownErr)
+			transactionCause := transactionErr
+			if typed, ok := transactionErr.(*define.GeneralError); ok && typed == nil {
+				transactionCause = fmt.Errorf("trip transaction returned a nil GeneralError")
+			}
+			generalErr = define.NewGeneralError(source, transactionCause, define.LangKeyTripCreateUnknownErr)
 		}
 		respondTripError(c, CreateTripResponse{}, source, generalErr)
 		return
@@ -244,6 +251,9 @@ func HandleUpdateTrip(c *gin.Context) {
 	}
 
 	var updatedVersion uint32
+	var previousNodes define.MulTripNode
+	var savedTripIdentity string
+	nodesSaved := false
 	generalErr = environment.DB.TripHandle().UpdateTrip(
 		environment.DB.Database(),
 		tripIdentity,
@@ -254,11 +264,62 @@ func HandleUpdateTrip(c *gin.Context) {
 			if request.ExpectedVersion != nil && *request.ExpectedVersion != tripInfo.CurrentVersion {
 				return invalidTripRequestWithKey("HandleUpdateTrip", define.LangKeyTripVersionConflict, "expected trip version %d but current version is %d", *request.ExpectedVersion, tripInfo.CurrentVersion)
 			}
-			if editableErr := validateTripEditable("HandleUpdateTrip", tripInfo.TripStatus); editableErr != nil {
-				return editableErr
-			}
 			if transitionErr := validateTripStatusTransition("HandleUpdateTrip", tripInfo.TripStatus, request.TripStatus); transitionErr != nil {
 				return transitionErr
+			}
+			currentStatus := tripInfo.TripStatus
+			switch currentStatus {
+			case define.TripStatusInPlanning:
+				// Planning information may be changed while the trip is still a draft,
+				// including in the request that starts the trip.
+			case define.TripStatusInProgress, define.TripStatusCompleted:
+				if tripInfo.TripName != tripName ||
+					tripInfo.TripDate.Format("2006-01-02") != request.TripDate.Format("2006-01-02") ||
+					tripInfo.TravelMode != request.TravelMode {
+					return invalidTripRequestWithKey(
+						"HandleUpdateTrip",
+						define.LangKeyTripStatusLocked,
+						"planning information cannot be changed after a trip has started",
+					)
+				}
+			case define.TripStatusCancelled:
+				return invalidTripRequestWithKey(
+					"HandleUpdateTrip",
+					define.LangKeyTripStatusTerminal,
+					"trip with terminal status %d cannot be changed",
+					tripInfo.TripStatus,
+				)
+			}
+
+			needsNodes := (request.TripStatus == define.TripStatusCompleted && currentStatus != define.TripStatusCompleted) ||
+				(request.TripStatus == define.TripStatusInPlanning && currentStatus != define.TripStatusInPlanning)
+			if needsNodes {
+				nodes, foundNodes, nodesErr := environment.DB.TripHandle().LoadTripNodesWithError(tripInfo.TripIdentity)
+				if nodesErr != nil {
+					return nodesErr
+				}
+				if !foundNodes {
+					return define.NewGeneralError("HandleUpdateTrip", fmt.Errorf("trip has no node resource"), define.LangKeyTripDataCorrupt)
+				}
+				if nodesErr = validateStoredTripNodes("HandleUpdateTrip", nodes); nodesErr != nil {
+					return nodesErr
+				}
+				if request.TripStatus == define.TripStatusCompleted {
+					if completionErr := validateTripReadyToComplete("HandleUpdateTrip", nodes); completionErr != nil {
+						return completionErr
+					}
+				}
+				if request.TripStatus == define.TripStatusInPlanning {
+					previousNodes = append(define.MulTripNode(nil), nodes...)
+					for index := range nodes {
+						nodes[index].IsCompleted = false
+					}
+					if nodesErr = environment.DB.TripHandle().SaveTripNodes(tripInfo.TripIdentity, nodes); nodesErr != nil {
+						return nodesErr
+					}
+					savedTripIdentity = tripInfo.TripIdentity
+					nodesSaved = true
+				}
 			}
 			var versionErr *define.GeneralError
 			updatedVersion, versionErr = nextTripVersion("HandleUpdateTrip", tripInfo.CurrentVersion)
@@ -273,6 +334,11 @@ func HandleUpdateTrip(c *gin.Context) {
 		},
 	)
 	if generalErr != nil {
+		if nodesSaved && savedTripIdentity != "" {
+			if restoreErr := environment.DB.TripHandle().SaveTripNodes(savedTripIdentity, previousNodes); restoreErr != nil {
+				generalErr = define.NewGeneralError(source, restoreErr, define.LangKeyTripDataCorrupt)
+			}
+		}
 		respondTripError(c, UpdateTripResponse{}, source, generalErr)
 		return
 	}
@@ -327,7 +393,7 @@ func HandleEditTripNode(c *gin.Context) {
 		respondTripError(c, EditTripNodeResponse{}, source, generalErr)
 		return
 	}
-	if request.RequestAction > EditTripNodeRequestActionUpdate {
+	if request.RequestAction > EditTripNodeRequestActionSetNote {
 		respondTripError(c, EditTripNodeResponse{}, source, invalidTripRequestWithKey(source, define.LangKeyTripNodeActionInvalid, "unsupported request_action %d", request.RequestAction))
 		return
 	}
@@ -337,9 +403,17 @@ func HandleEditTripNode(c *gin.Context) {
 			return
 		}
 	}
-	noteString := uuid.Nil
-	if request.RequestAction == EditTripNodeRequestActionAdd || request.RequestAction == EditTripNodeRequestActionUpdate {
-		noteString, generalErr = parseTripNodeNote(source, request.NoteString)
+	if request.RequestAction == EditTripNodeRequestActionSetCompleted && request.IsCompleted == nil {
+		respondTripError(c, EditTripNodeResponse{}, source, invalidTripRequestWithKey(source, define.LangKeyTripNodeCompletionInvalid, "is_completed is required when setting node completion"))
+		return
+	}
+	if request.RequestAction == EditTripNodeRequestActionSetNote && request.NoteString == nil {
+		respondTripError(c, EditTripNodeResponse{}, source, invalidTripRequestWithKey(source, define.LangKeyTripNodeNoteInvalid, "note_string is required when setting a node note"))
+		return
+	}
+	noteString := ""
+	if request.NoteString != nil && (request.RequestAction == EditTripNodeRequestActionAdd || request.RequestAction == EditTripNodeRequestActionUpdate || request.RequestAction == EditTripNodeRequestActionSetNote) {
+		noteString, generalErr = parseTripNodeNote(source, *request.NoteString)
 		if generalErr != nil {
 			respondTripError(c, EditTripNodeResponse{}, source, generalErr)
 			return
@@ -399,7 +473,15 @@ func HandleEditTripNode(c *gin.Context) {
 			if request.ExpectedVersion != nil && *request.ExpectedVersion != tripInfo.CurrentVersion {
 				return invalidTripRequestWithKey(source, define.LangKeyTripVersionConflict, "expected trip version %d but current version is %d", *request.ExpectedVersion, tripInfo.CurrentVersion)
 			}
-			if editableErr := validateTripEditable(source, tripInfo.TripStatus); editableErr != nil {
+			if request.RequestAction == EditTripNodeRequestActionSetCompleted {
+				if tripInfo.TripStatus != define.TripStatusInProgress {
+					return invalidTripRequestWithKey(
+						source,
+						define.LangKeyTripNodeCompletionStatusInvalid,
+						"node completion can only be changed for an in-progress trip",
+					)
+				}
+			} else if editableErr := validateTripEditable(source, tripInfo.TripStatus); editableErr != nil {
 				return editableErr
 			}
 			savedTripIdentity = tripInfo.TripIdentity
@@ -466,6 +548,16 @@ func HandleEditTripNode(c *gin.Context) {
 					return err
 				}
 				nodes[request.NodeIndex] = define.TripNode{PlaceIdentity: place.PlaceIdentity, NoteString: noteString}
+			case EditTripNodeRequestActionSetCompleted:
+				if int(request.NodeIndex) >= len(nodes) {
+					return invalidTripRequestWithKey(source, define.LangKeyTripNodeIndexInvalid, "node_index must refer to an existing node")
+				}
+				nodes[request.NodeIndex].IsCompleted = *request.IsCompleted
+			case EditTripNodeRequestActionSetNote:
+				if int(request.NodeIndex) >= len(nodes) {
+					return invalidTripRequestWithKey(source, define.LangKeyTripNodeIndexInvalid, "node_index must refer to an existing node")
+				}
+				nodes[request.NodeIndex].NoteString = noteString
 			}
 			if err := environment.DB.TripHandle().SaveTripNodes(tripInfo.TripIdentity, nodes); err != nil {
 				return err

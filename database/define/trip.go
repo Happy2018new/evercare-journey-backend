@@ -3,7 +3,6 @@ package define
 import (
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/sandertv/gophertunnel/minecraft/protocol"
 )
 
@@ -73,12 +72,13 @@ type TripInfo struct {
 	CurrentVersion uint32 `gorm:"type:int unsigned"`
 	UpdateUnixTime int64  `gorm:"type:bigint"`
 
-	OwnerInfo UserData `gorm:"foreignKey:UserUniqueID;references:UserUniqueID"`
+	OwnerInfo UserData `gorm:"foreignKey:UserUniqueID;references:UserUniqueID;belongsTo"`
 }
 
 type TripNode struct {
-	NoteString    uuid.UUID `json:"note_string"`
-	PlaceIdentity string    `json:"place_identity"`
+	NoteString    string `json:"note_string"`
+	PlaceIdentity string `json:"place_identity"`
+	IsCompleted   bool   `json:"is_completed"`
 }
 
 func NewTripNode() *TripNode {
@@ -86,8 +86,9 @@ func NewTripNode() *TripNode {
 }
 
 func (t *TripNode) Marshal(io protocol.IO) {
-	io.UUID(&t.NoteString)
+	io.StringUTF(&t.NoteString)
 	io.StringUTF(&t.PlaceIdentity)
+	io.Bool(&t.IsCompleted)
 }
 
 type MulTripNode []TripNode

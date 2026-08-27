@@ -181,6 +181,8 @@ const (
 	EditTripNodeRequestActionDelete
 	EditTripNodeRequestActionMove
 	EditTripNodeRequestActionUpdate
+	EditTripNodeRequestActionSetCompleted
+	EditTripNodeRequestActionSetNote
 )
 
 type EditTripNodeRequest struct {
@@ -192,8 +194,9 @@ type EditTripNodeRequest struct {
 	NodeIndex uint8 `json:"node_index"`
 	MoveToInd uint8 `json:"move_to_ind,omitempty"`
 
-	AmapPlaceID string `json:"amap_place_id,omitempty"`
-	NoteString  string `json:"note_string,omitempty"`
+	AmapPlaceID string  `json:"amap_place_id,omitempty"`
+	NoteString  *string `json:"note_string,omitempty"`
+	IsCompleted *bool   `json:"is_completed,omitempty"`
 }
 
 type EditTripNodeResponse struct {

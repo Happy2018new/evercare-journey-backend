@@ -10,6 +10,7 @@ type TripVersionData struct {
 type TripNodeData struct {
 	PlaceIdentity string `json:"place_identity"`
 	NoteString    string `json:"note_string,omitempty"`
+	IsCompleted   bool   `json:"is_completed"`
 }
 
 type TripData struct {

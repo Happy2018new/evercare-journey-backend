@@ -25,15 +25,16 @@ func init() {
 		panic(fmt.Errorf("Failed to migrate MySQL tables: %w", err))
 	}
 
+	bboltDatabasePath := BBoltDatabasePath()
 	resDB, err := bbolt.Open(
-		BBoltDatabasePath,
+		bboltDatabasePath,
 		0600,
 		&bbolt.Options{
 			FreelistType: bbolt.FreelistMapType,
 		},
 	)
 	if err != nil {
-		panic(fmt.Errorf("Failed to open resource database: %w", err))
+		panic(fmt.Errorf("Failed to open resource database %q: %w", bboltDatabasePath, err))
 	}
 
 	DB = NewWrappedDatabase(mysqlDB, resDB)

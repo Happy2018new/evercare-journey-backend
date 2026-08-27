@@ -1,6 +1,10 @@
 package environment
 
 import (
+	"os"
+	"path/filepath"
+	"runtime"
+
 	"github.com/Happy2018new/evercare-journey-backend/database/handle"
 	"go.etcd.io/bbolt"
 	"gorm.io/gorm"
@@ -13,8 +17,20 @@ const (
 	MySqlDatabasePassword = "password"
 	MySqlDatabaseAddress  = "127.0.0.1:3306"
 	MySqlDatabaseName     = "dbname"
-	BBoltDatabasePath     = "res.db"
+	BBoltDatabaseFileName = "res.db"
 )
+
+// BBoltDatabasePath resolves the resource database independently of the
+// process working directory. Set EVERCARE_BBOLT_DATABASE_PATH to override it.
+func BBoltDatabasePath() string {
+	if configuredPath := os.Getenv("EVERCARE_BBOLT_DATABASE_PATH"); configuredPath != "" {
+		return configuredPath
+	}
+	if _, sourceFile, _, ok := runtime.Caller(0); ok {
+		return filepath.Join(filepath.Dir(filepath.Dir(sourceFile)), BBoltDatabaseFileName)
+	}
+	return BBoltDatabaseFileName
+}
 
 type WrappedDatabase struct {
 	database       *gorm.DB

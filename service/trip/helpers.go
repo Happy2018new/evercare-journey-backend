@@ -24,7 +24,7 @@ const (
 	maxTripNodeCount         = 100
 	maxOptimizationNodeCount = 30
 	maxPlacePage             = 1000
-	maxPlacePageSize         = 25
+	maxPlacePageSize         = 3
 	maxNearbyRadius          = 50000
 )
 
@@ -205,11 +205,11 @@ func validateTripStatusTransition(source string, currentStatus uint8, nextStatus
 	}
 	allowed := false
 	switch currentStatus {
-	case define.TripStatusInPlanning:
-		allowed = nextStatus == define.TripStatusInProgress || nextStatus == define.TripStatusCancelled
-	case define.TripStatusInProgress:
-		allowed = nextStatus == define.TripStatusCompleted || nextStatus == define.TripStatusCancelled
-	case define.TripStatusCompleted, define.TripStatusCancelled:
+	case define.TripStatusInPlanning, define.TripStatusInProgress:
+		allowed = nextStatus <= define.TripStatusCompleted || nextStatus == define.TripStatusCancelled
+	case define.TripStatusCompleted:
+		allowed = nextStatus <= define.TripStatusCompleted
+	case define.TripStatusCancelled:
 		allowed = false
 	}
 	if allowed {
@@ -225,13 +225,27 @@ func validateTripStatusTransition(source string, currentStatus uint8, nextStatus
 }
 
 func validateTripEditable(source string, status uint8) *define.GeneralError {
-	if status == define.TripStatusCompleted || status == define.TripStatusCancelled {
+	if status != define.TripStatusInPlanning {
 		return invalidTripRequestWithKey(
 			source,
-			define.LangKeyTripStatusTerminal,
-			"trip with terminal status %d cannot be edited",
+			define.LangKeyTripStatusLocked,
+			"trip with status %d cannot edit planning information",
 			status,
 		)
+	}
+	return nil
+}
+
+func validateTripReadyToComplete(source string, nodes define.MulTripNode) *define.GeneralError {
+	for index, node := range nodes {
+		if !node.IsCompleted {
+			return invalidTripRequestWithKey(
+				source,
+				define.LangKeyTripCompleteNodesIncomplete,
+				"trip node %d has not been completed",
+				index,
+			)
+		}
 	}
 	return nil
 }
@@ -320,13 +334,10 @@ func placeDataFromInfo(place define.PlaceInfo) PlaceData {
 func tripDataFromInfo(trip define.TripInfo, nodes define.MulTripNode) TripData {
 	tripNodes := make([]TripNodeData, 0, len(nodes))
 	for _, node := range nodes {
-		noteString := ""
-		if node.NoteString != uuid.Nil {
-			noteString = node.NoteString.String()
-		}
 		tripNodes = append(tripNodes, TripNodeData{
 			PlaceIdentity: node.PlaceIdentity,
-			NoteString:    noteString,
+			NoteString:    node.NoteString,
+			IsCompleted:   node.IsCompleted,
 		})
 	}
 	return TripData{
@@ -341,16 +352,12 @@ func tripDataFromInfo(trip define.TripInfo, nodes define.MulTripNode) TripData {
 	}
 }
 
-func parseTripNodeNote(source string, value string) (uuid.UUID, *define.GeneralError) {
+func parseTripNodeNote(source string, value string) (string, *define.GeneralError) {
 	value = strings.TrimSpace(value)
-	if value == "" {
-		return uuid.Nil, nil
+	if utf8.RuneCountInString(value) > 200 {
+		return "", invalidTripRequestWithKey(source, define.LangKeyTripNodeNoteInvalid, "note_string cannot exceed 200 characters")
 	}
-	note, err := uuid.Parse(value)
-	if err != nil || note == uuid.Nil {
-		return uuid.Nil, invalidTripRequestWithKey(source, define.LangKeyTripNodeNoteInvalid, "note_string must be a valid UUID")
-	}
-	return note, nil
+	return value, nil
 }
 
 func validateStoredTripNodes(source string, nodes define.MulTripNode) *define.GeneralError {

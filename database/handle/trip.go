@@ -30,6 +30,54 @@ type TripHandle struct {
 	resHandle *ResourceHandle
 }
 
+var (
+	tripNodesResourcePrefix   = []byte{'E', 'J', 'T', 'N'}
+	tripNodesResourceHeaderV1 = []byte{'E', 'J', 'T', 'N', 1}
+	tripNodesResourceHeaderV2 = []byte{'E', 'J', 'T', 'N', 2}
+)
+
+// legacyTripNode is the node layout written before completion tracking was
+// introduced. It is kept only so existing bbolt resources remain readable.
+type legacyTripNode struct {
+	NoteString    uuid.UUID
+	PlaceIdentity string
+}
+
+func (node *legacyTripNode) Marshal(io protocol.IO) {
+	io.UUID(&node.NoteString)
+	io.StringUTF(&node.PlaceIdentity)
+}
+
+type legacyMulTripNode []legacyTripNode
+
+func (nodes *legacyMulTripNode) Marshal(io protocol.IO) {
+	data := ([]legacyTripNode)(*nodes)
+	protocol.SliceUint8Length(io, &data)
+	*nodes = data
+}
+
+// tripNodeV1 is the versioned node layout used before note text was stored
+// directly in the trip resource.
+type tripNodeV1 struct {
+	NoteString    uuid.UUID
+	PlaceIdentity string
+	IsCompleted   bool
+}
+
+func (node *tripNodeV1) Marshal(io protocol.IO) {
+	io.UUID(&node.NoteString)
+	io.StringUTF(&node.PlaceIdentity)
+	io.Bool(&node.IsCompleted)
+}
+
+type mulTripNodeV1 []tripNodeV1
+
+func (nodes *mulTripNodeV1) Marshal(io protocol.IO) {
+	data := ([]tripNodeV1)(*nodes)
+	protocol.SliceUint8Length(io, &data)
+	*nodes = data
+}
+
 func NewTripHandle(r *ResourceHandle) *TripHandle {
 	return &TripHandle{
 		resHandle: r,
@@ -300,14 +348,12 @@ func (t *TripHandle) SaveTripNodes(tripIdentity string, tripNodes define.MulTrip
 			define.LangKeyTripNodeCountInvalid,
 		)
 	}
-	buf := bytes.NewBuffer(nil)
-	writer := protocol.NewWriter(buf, 0)
-	tripNodes.Marshal(writer)
+	data := encodeTripNodesResource(tripNodes)
 
 	err := t.resHandle.SaveResource(
 		ResourceTypeTripNodes,
 		tripIdentity,
-		buf.Bytes(),
+		data,
 	)
 	if err != nil {
 		return define.NewGeneralError("SaveTripNodes", err, define.LangKeyTripNodeSaveUnknownErr)
@@ -344,13 +390,11 @@ func (t *TripHandle) LoadTripNodesWithError(tripIdentity string) (tripNodes defi
 		}
 	}()
 
-	buf := bytes.NewBuffer(data)
-	reader := protocol.NewReader(buf, 0, false)
-	tripNodes.Marshal(reader)
-	if buf.Len() != 0 {
+	tripNodes, decodeErr := decodeTripNodesResource(data)
+	if decodeErr != nil {
 		return nil, true, define.NewGeneralError(
 			"LoadTripNodes",
-			fmt.Errorf("decoded trip node resource contains %d trailing bytes", buf.Len()),
+			decodeErr,
 			define.LangKeyTripDataCorrupt,
 		)
 	}
@@ -362,6 +406,73 @@ func (t *TripHandle) LoadTripNodesWithError(tripIdentity string) (tripNodes defi
 		)
 	}
 	return tripNodes, true, nil
+}
+
+func encodeTripNodesResource(tripNodes define.MulTripNode) []byte {
+	buf := bytes.NewBuffer(make([]byte, 0, len(tripNodesResourceHeaderV2)+1+len(tripNodes)*64))
+	_, _ = buf.Write(tripNodesResourceHeaderV2)
+	writer := protocol.NewWriter(buf, 0)
+	tripNodes.Marshal(writer)
+	return buf.Bytes()
+}
+
+func decodeTripNodesResource(data []byte) (define.MulTripNode, error) {
+	buf := bytes.NewBuffer(data)
+	if bytes.HasPrefix(data, tripNodesResourceHeaderV2) {
+		buf.Next(len(tripNodesResourceHeaderV2))
+		reader := protocol.NewReader(buf, 0, false)
+		var tripNodes define.MulTripNode
+		tripNodes.Marshal(reader)
+		if buf.Len() != 0 {
+			return nil, fmt.Errorf("decoded trip node resource contains %d trailing bytes", buf.Len())
+		}
+		return tripNodes, nil
+	}
+	if bytes.HasPrefix(data, tripNodesResourceHeaderV1) {
+		buf.Next(len(tripNodesResourceHeaderV1))
+		reader := protocol.NewReader(buf, 0, false)
+		var versionOneNodes mulTripNodeV1
+		versionOneNodes.Marshal(reader)
+		if buf.Len() != 0 {
+			return nil, fmt.Errorf("decoded version 1 trip node resource contains %d trailing bytes", buf.Len())
+		}
+		tripNodes := make(define.MulTripNode, 0, len(versionOneNodes))
+		for _, node := range versionOneNodes {
+			noteString := ""
+			if node.NoteString != uuid.Nil {
+				noteString = node.NoteString.String()
+			}
+			tripNodes = append(tripNodes, define.TripNode{
+				NoteString:    noteString,
+				PlaceIdentity: node.PlaceIdentity,
+				IsCompleted:   node.IsCompleted,
+			})
+		}
+		return tripNodes, nil
+	}
+	if bytes.HasPrefix(data, tripNodesResourcePrefix) {
+		return nil, fmt.Errorf("unsupported trip node resource version")
+	}
+
+	reader := protocol.NewReader(buf, 0, false)
+	var legacyNodes legacyMulTripNode
+	legacyNodes.Marshal(reader)
+	if buf.Len() != 0 {
+		return nil, fmt.Errorf("decoded legacy trip node resource contains %d trailing bytes", buf.Len())
+	}
+	tripNodes := make(define.MulTripNode, 0, len(legacyNodes))
+	for _, node := range legacyNodes {
+		noteString := ""
+		if node.NoteString != uuid.Nil {
+			noteString = node.NoteString.String()
+		}
+		tripNodes = append(tripNodes, define.TripNode{
+			NoteString:    noteString,
+			PlaceIdentity: node.PlaceIdentity,
+			IsCompleted:   false,
+		})
+	}
+	return tripNodes, nil
 }
 
 func (t *TripHandle) DeleteTripNodes(tripIdentity string) *define.GeneralError {

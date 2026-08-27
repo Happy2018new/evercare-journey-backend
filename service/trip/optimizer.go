@@ -2,10 +2,11 @@ package trip
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/Happy2018new/evercare-journey-backend/database/define"
@@ -28,12 +29,12 @@ type optimizationCost struct {
 	duration int64
 }
 
-// HandleOptimizeTrip uses the route costs returned by Amap as the road-network
-// abstraction available to this service. It keeps the user-selected endpoints
-// fixed, orders intermediate places with a nearest-neighbour seed, and applies
-// directed 2-opt improvement. Elevation, rest-point density, medical access,
-// and offline tile graphs are not present in the current data/API contract and
-// therefore cannot be scored here without inventing data.
+const optimizationAmapRequestInterval = 600 * time.Millisecond
+
+// HandleOptimizeTrip prefers Amap road-network costs and falls back to
+// coordinate distance only when Amap explicitly reports a quota/rate limit.
+// It keeps the user-selected endpoints fixed, orders intermediate places with
+// a nearest-neighbour seed, and applies directed 2-opt improvement.
 func HandleOptimizeTrip(c *gin.Context) {
 	const source = "HandleOptimizeTrip"
 	var request OptimizeTripRequest
@@ -240,84 +241,121 @@ func buildOptimizationMatrix(ctx context.Context, points []optimizationPoint, tr
 			Latitude:  origin.place.Latitude,
 		}
 	}
-	parallelLimit := 8
-	if len(points) < parallelLimit {
-		parallelLimit = len(points)
-	}
-	semaphore := make(chan struct{}, parallelLimit)
-	errCh := make(chan error, len(points))
-	var waitGroup sync.WaitGroup
 	for destinationIndex, destination := range points {
-		destinationIndex, destination := destinationIndex, destination
-		waitGroup.Add(1)
-		go func() {
-			defer waitGroup.Done()
+		if destinationIndex > 0 {
+			timer := time.NewTimer(optimizationAmapRequestInterval)
 			select {
-			case semaphore <- struct{}{}:
+			case <-timer.C:
 			case <-ctx.Done():
-				return
+				timer.Stop()
+				return nil, define.NewGeneralError(source, ctx.Err(), define.LangKeyTripOptimizeUnknownErr)
 			}
-			defer func() { <-semaphore }()
+		}
 
-			distances, err := utils.QueryAmapDistances(
-				ctx,
-				origins,
-				utils.AmapCoordinate{
-					Longitude: destination.place.Longitude,
-					Latitude:  destination.place.Latitude,
-				},
-				distanceType,
-			)
-			if err != nil {
-				errCh <- err
-				return
+		distances, err := utils.QueryAmapDistances(
+			ctx,
+			origins,
+			utils.AmapCoordinate{
+				Longitude: destination.place.Longitude,
+				Latitude:  destination.place.Latitude,
+			},
+			distanceType,
+		)
+		if err != nil {
+			if isAmapQuotaError(err) {
+				return buildStraightLineOptimizationMatrix(points, travelMode), nil
 			}
-			seen := make([]bool, len(points))
-			for _, distance := range distances {
-				if distance.OriginIndex < 0 || distance.OriginIndex >= len(points) {
-					errCh <- fmt.Errorf("distance API returned invalid origin index %d", distance.OriginIndex)
-					return
-				}
-				if distance.Distance < 0 || distance.Duration < 0 {
-					errCh <- fmt.Errorf("distance API returned negative cost for origin %d", distance.OriginIndex)
-					return
-				}
-				if distance.OriginIndex != destinationIndex && (distance.Distance == 0 || distance.Duration == 0) {
-					errCh <- fmt.Errorf("distance API returned an unavailable route from origin %d", distance.OriginIndex)
-					return
-				}
-				if seen[distance.OriginIndex] {
-					errCh <- fmt.Errorf("distance API returned duplicate origin %d", distance.OriginIndex)
-					return
-				}
-				matrix[distance.OriginIndex][destinationIndex] = optimizationCost{
-					distance: distance.Distance,
-					duration: distance.Duration,
-				}
-				seen[distance.OriginIndex] = true
-			}
-			for originIndex, found := range seen {
-				if originIndex == destinationIndex {
-					matrix[originIndex][destinationIndex] = optimizationCost{}
-					continue
-				}
-				if !found {
-					errCh <- fmt.Errorf("distance API did not return origin %d", originIndex)
-					return
-				}
-			}
-		}()
-	}
-	waitGroup.Wait()
-	select {
-	case err := <-errCh:
-		return nil, define.NewGeneralError(source, err, define.LangKeyTripOptimizeRouteUnavailable)
-	default:
-	}
-	if err := ctx.Err(); err != nil {
-		return nil, define.NewGeneralError(source, err, define.LangKeyTripOptimizeUnknownErr)
+			return nil, define.NewGeneralError(source, err, define.LangKeyTripOptimizeRouteUnavailable)
+		}
+		if err = storeOptimizationDistances(matrix, destinationIndex, distances); err != nil {
+			return nil, define.NewGeneralError(source, err, define.LangKeyTripOptimizeRouteUnavailable)
+		}
 	}
 	return matrix, nil
+}
+
+func storeOptimizationDistances(matrix [][]optimizationCost, destinationIndex int, distances []utils.AmapDistance) error {
+	seen := make([]bool, len(matrix))
+	for _, distance := range distances {
+		if distance.OriginIndex < 0 || distance.OriginIndex >= len(matrix) {
+			return fmt.Errorf("distance API returned invalid origin index %d", distance.OriginIndex)
+		}
+		if distance.Distance < 0 || distance.Duration < 0 {
+			return fmt.Errorf("distance API returned negative cost for origin %d", distance.OriginIndex)
+		}
+		if distance.OriginIndex != destinationIndex && (distance.Distance == 0 || distance.Duration == 0) {
+			return fmt.Errorf("distance API returned an unavailable route from origin %d", distance.OriginIndex)
+		}
+		if seen[distance.OriginIndex] {
+			return fmt.Errorf("distance API returned duplicate origin %d", distance.OriginIndex)
+		}
+		matrix[distance.OriginIndex][destinationIndex] = optimizationCost{
+			distance: distance.Distance,
+			duration: distance.Duration,
+		}
+		seen[distance.OriginIndex] = true
+	}
+	for originIndex, found := range seen {
+		if originIndex == destinationIndex {
+			matrix[originIndex][destinationIndex] = optimizationCost{}
+			continue
+		}
+		if !found {
+			return fmt.Errorf("distance API did not return origin %d", originIndex)
+		}
+	}
+	return nil
+}
+
+func isAmapQuotaError(err error) bool {
+	var amapErr *utils.AmapAPIError
+	if !errors.As(err, &amapErr) {
+		return false
+	}
+	switch strings.TrimSpace(amapErr.ErrorCode) {
+	case "10003", "10004", "10019", "10020", "10021", "10022":
+		return true
+	}
+	info := strings.ToUpper(amapErr.ErrorInfo)
+	return strings.Contains(info, "EXCEEDED_THE_LIMIT") || strings.Contains(info, "TOO_FREQUENT")
+}
+
+func buildStraightLineOptimizationMatrix(points []optimizationPoint, travelMode uint8) [][]optimizationCost {
+	speedMetresPerSecond := 1.25
+	if travelMode == define.TripTravelModeDriving {
+		speedMetresPerSecond = 13.89
+	}
+	matrix := make([][]optimizationCost, len(points))
+	for originIndex, origin := range points {
+		matrix[originIndex] = make([]optimizationCost, len(points))
+		for destinationIndex, destination := range points {
+			if originIndex == destinationIndex {
+				continue
+			}
+			distance := greatCircleDistanceMetres(origin.place, destination.place)
+			if distance < 1 {
+				distance = 1
+			}
+			matrix[originIndex][destinationIndex] = optimizationCost{
+				distance: distance,
+				duration: int64(math.Ceil(float64(distance) / speedMetresPerSecond)),
+			}
+		}
+	}
+	return matrix
+}
+
+func greatCircleDistanceMetres(origin define.PlaceInfo, destination define.PlaceInfo) int64 {
+	const earthRadiusMetres = 6371000.0
+	toRadians := func(value float64) float64 { return value * math.Pi / 180 }
+	lat1 := toRadians(origin.Latitude)
+	lat2 := toRadians(destination.Latitude)
+	deltaLatitude := lat2 - lat1
+	deltaLongitude := toRadians(destination.Longitude - origin.Longitude)
+	a := math.Sin(deltaLatitude/2)*math.Sin(deltaLatitude/2) +
+		math.Cos(lat1)*math.Cos(lat2)*math.Sin(deltaLongitude/2)*math.Sin(deltaLongitude/2)
+	a = math.Max(0, math.Min(1, a))
+	return int64(math.Round(earthRadiusMetres * 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))))
 }
 
 func optimizationScore(cost optimizationCost) float64 {

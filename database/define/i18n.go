@@ -85,7 +85,9 @@ const (
 	LangKeyTripTravelModeInvalid          = "error.trip.travel.mode.invalid"          // 行程交通方式无效
 	LangKeyTripStatusInvalid              = "error.trip.status.invalid"               // 行程状态无效
 	LangKeyTripStatusTransitionInvalid    = "error.trip.status.transition.invalid"    // 行程状态不能这样变更
+	LangKeyTripStatusLocked               = "error.trip.status.locked"                // 已开始的行程不可修改规划信息
 	LangKeyTripStatusTerminal             = "error.trip.status.terminal"              // 已结束的行程不可继续编辑
+	LangKeyTripCompleteNodesIncomplete    = "error.trip.complete.nodes.incomplete"    // 尚有未完成节点，不能结束行程
 	LangKeyTripVersionExhausted           = "error.trip.version.exhausted"            // 行程版本号已耗尽
 	LangKeyTripVersionConflict            = "error.trip.version.conflict"             // 行程已被其他设备更新
 	LangKeyTripStartEndSameInvalid        = "error.trip.start.end.same"               // 行程起点和终点不能相同
@@ -104,14 +106,16 @@ const (
 	LangKeyTripOptimizeStatusInvalid      = "error.trip.optimize.status.invalid"      // 当前行程状态不允许智能规划
 	LangKeyTripDataCorrupt                = "error.trip.data.corrupt"                 // 行程节点数据损坏
 
-	LangKeyTripNodeSaveUnknownErr       = "error.trip.node.save.unknown"           // 保存行程节点信息时出现未知错误
-	LangKeyTripNodeDeleteUnknownErr     = "error.trip.node.delete.unknown"         // 删除行程节点信息时出现未知错误
-	LangKeyTripNodeActionInvalid        = "error.trip.node.action.invalid"         // 行程节点操作类型无效
-	LangKeyTripNodeIndexInvalid         = "error.trip.node.index.invalid"          // 行程节点位置无效
-	LangKeyTripNodeEndpointProtected    = "error.trip.node.endpoint.protected"     // 行程起点和终点不可编辑
-	LangKeyTripNodeNoteInvalid          = "error.trip.node.note.invalid"           // 行程节点备注身份无效
-	LangKeyTripNodeCountInvalid         = "error.trip.node.count.invalid"          // 行程节点数量无效
-	LangKeyTripOptimizeNodeCountInvalid = "error.trip.optimize.node.count.invalid" // 智能优化的行程节点数量无效
+	LangKeyTripNodeSaveUnknownErr          = "error.trip.node.save.unknown"              // 保存行程节点信息时出现未知错误
+	LangKeyTripNodeDeleteUnknownErr        = "error.trip.node.delete.unknown"            // 删除行程节点信息时出现未知错误
+	LangKeyTripNodeActionInvalid           = "error.trip.node.action.invalid"            // 行程节点操作类型无效
+	LangKeyTripNodeIndexInvalid            = "error.trip.node.index.invalid"             // 行程节点位置无效
+	LangKeyTripNodeEndpointProtected       = "error.trip.node.endpoint.protected"        // 行程起点和终点不可编辑
+	LangKeyTripNodeNoteInvalid             = "error.trip.node.note.invalid"              // 行程节点备注内容无效
+	LangKeyTripNodeCountInvalid            = "error.trip.node.count.invalid"             // 行程节点数量无效
+	LangKeyTripNodeCompletionInvalid       = "error.trip.node.completion.invalid"        // 节点完成状态参数无效
+	LangKeyTripNodeCompletionStatusInvalid = "error.trip.node.completion.status.invalid" // 当前行程状态不能设置节点完成情况
+	LangKeyTripOptimizeNodeCountInvalid    = "error.trip.optimize.node.count.invalid"    // 智能优化的行程节点数量无效
 
 	LangKeyHotPlaceRequestBodyInvalid    = "error.hot.place.request.body.invalid"  // 热门地点请求体格式无效
 	LangKeyHotPlaceRequestCountInvalid   = "error.hot.place.request.count.invalid" // 热门地点请求数量无效

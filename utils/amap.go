@@ -9,6 +9,7 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -39,9 +40,10 @@ const (
 )
 
 const (
-	amapRequestTimeout = time.Second * 10
-	amapMaxBodySize    = 4 * 1024 * 1024
-	amapMaxOrigins     = 100
+	amapRequestTimeout         = time.Second * 10
+	amapMaxBodySize            = 4 * 1024 * 1024
+	amapMaxOrigins             = 100
+	amapPlaceSearchMaxPageSize = 3
 )
 
 var amapHTTPClient = &http.Client{Timeout: amapRequestTimeout}
@@ -112,7 +114,7 @@ func (e *AmapAPIError) Error() string {
 }
 
 // SearchAmapPlaces searches POIs by keyword. Page and PageSize default to 1
-// and 20 respectively when they are zero.
+// and 3 respectively when they are zero.
 func SearchAmapPlaces(ctx context.Context, options AmapPlaceSearchOptions) (AmapPlaceSearchResult, error) {
 	keywords := strings.TrimSpace(options.Keywords)
 	if keywords == "" {
@@ -129,10 +131,10 @@ func SearchAmapPlaces(ctx context.Context, options AmapPlaceSearchOptions) (Amap
 
 	pageSize := options.PageSize
 	if pageSize == 0 {
-		pageSize = 20
+		pageSize = amapPlaceSearchMaxPageSize
 	}
-	if pageSize < 1 || pageSize > 25 {
-		return AmapPlaceSearchResult{}, fmt.Errorf("SearchAmapPlaces: Page size must be between 1 and 25")
+	if pageSize < 1 || pageSize > amapPlaceSearchMaxPageSize {
+		return AmapPlaceSearchResult{}, fmt.Errorf("SearchAmapPlaces: Page size must be between 1 and %d", amapPlaceSearchMaxPageSize)
 	}
 
 	query := url.Values{
@@ -168,7 +170,7 @@ func SearchAmapPlaces(ctx context.Context, options AmapPlaceSearchOptions) (Amap
 }
 
 // SearchAmapNearbyPlaces searches POIs around a GCJ-02 coordinate. Page and
-// PageSize default to 1 and 20 respectively when they are zero.
+// PageSize default to 1 and 3 respectively when they are zero.
 func SearchAmapNearbyPlaces(ctx context.Context, options AmapNearbyPlaceSearchOptions) (AmapPlaceSearchResult, error) {
 	if math.IsNaN(options.Longitude) || math.IsInf(options.Longitude, 0) ||
 		options.Longitude < -180 || options.Longitude > 180 {
@@ -197,10 +199,10 @@ func SearchAmapNearbyPlaces(ctx context.Context, options AmapNearbyPlaceSearchOp
 
 	pageSize := options.PageSize
 	if pageSize == 0 {
-		pageSize = 20
+		pageSize = amapPlaceSearchMaxPageSize
 	}
-	if pageSize < 1 || pageSize > 25 {
-		return AmapPlaceSearchResult{}, fmt.Errorf("SearchAmapNearbyPlaces: Page size must be between 1 and 25")
+	if pageSize < 1 || pageSize > amapPlaceSearchMaxPageSize {
+		return AmapPlaceSearchResult{}, fmt.Errorf("SearchAmapNearbyPlaces: Page size must be between 1 and %d", amapPlaceSearchMaxPageSize)
 	}
 
 	sortRule := strings.TrimSpace(options.SortRule)
@@ -419,11 +421,14 @@ func requestAmapJSON[T any](ctx context.Context, endpoint string, query url.Valu
 			values.Add(key, val)
 		}
 	}
-	apiKey := strings.TrimSpace(MapServiceAPIKey)
-	if apiKey == "" || apiKey == defaultMapServiceAPIKey {
+	apiKey := strings.TrimSpace(os.Getenv("AMAP_WEB_SERVICE_KEY"))
+	if apiKey == "" {
+		apiKey = strings.TrimSpace(MapServiceAPIKey)
+	}
+	if apiKey == "" {
 		apiKey = strings.TrimSpace(AmapServiceAccessToken)
 	}
-	if apiKey == "" || apiKey == defaultMapServiceAPIKey {
+	if apiKey == "" {
 		return result, fmt.Errorf("requestAmapJSON: MapServiceAPIKey is not configured")
 	}
 	values.Set("key", apiKey)
