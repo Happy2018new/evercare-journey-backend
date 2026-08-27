@@ -1,0 +1,587 @@
+[
+  {
+    "place_identity": "6ac4394b-0c86-5403-b70f-ec3afea7e1c5",
+    "name": "故宫博物院",
+    "province": "北京市",
+    "city": "北京市",
+    "longitude": 116.3972,
+    "latitude": 39.9163,
+    "category": "历史建筑"
+  },
+  {
+    "place_identity": "5d344d6f-3cfc-5983-8530-123c28d87fc0",
+    "name": "八达岭长城",
+    "province": "北京市",
+    "city": "北京市",
+    "longitude": 116.0169,
+    "latitude": 40.3547,
+    "category": "历史建筑"
+  },
+  {
+    "place_identity": "7e97ddcc-defc-5d76-a373-290a0b395693",
+    "name": "天坛公园",
+    "province": "北京市",
+    "city": "北京市",
+    "longitude": 116.4108,
+    "latitude": 39.8822,
+    "category": "历史建筑"
+  },
+  {
+    "place_identity": "0908b5cc-b27d-59c0-bf9d-8ccbfdf1d9a2",
+    "name": "天津古文化街",
+    "province": "天津市",
+    "city": "天津市",
+    "longitude": 117.1955,
+    "latitude": 39.1532,
+    "category": "人文景观"
+  },
+  {
+    "place_identity": "384ba3af-5907-5cdf-bbcf-a7cb2e87d958",
+    "name": "承德避暑山庄",
+    "province": "河北省",
+    "city": "承德市",
+    "longitude": 117.9388,
+    "latitude": 40.9917,
+    "category": "历史建筑"
+  },
+  {
+    "place_identity": "9c3e23f8-b5f3-5d14-aa72-92ac6bedd63b",
+    "name": "山海关",
+    "province": "河北省",
+    "city": "秦皇岛市",
+    "longitude": 119.7756,
+    "latitude": 40.0028,
+    "category": "历史建筑"
+  },
+  {
+    "place_identity": "a7322296-eb68-5e23-a154-3a6f823c252b",
+    "name": "云冈石窟",
+    "province": "山西省",
+    "city": "大同市",
+    "longitude": 113.1326,
+    "latitude": 40.1109,
+    "category": "世界遗产"
+  },
+  {
+    "place_identity": "69bff8d4-0421-5f6b-a3c0-b93ea95efaf0",
+    "name": "平遥古城",
+    "province": "山西省",
+    "city": "晋中市",
+    "longitude": 112.176,
+    "latitude": 37.1894,
+    "category": "世界遗产"
+  },
+  {
+    "place_identity": "b3da66e1-20c2-55cf-9580-c4dcda8d088e",
+    "name": "响沙湾",
+    "province": "内蒙古自治区",
+    "city": "鄂尔多斯市",
+    "longitude": 109.99,
+    "latitude": 40.286,
+    "category": "自然景观"
+  },
+  {
+    "place_identity": "d6c5b00f-8dc8-5928-9469-d601709a5e6d",
+    "name": "呼伦贝尔草原",
+    "province": "内蒙古自治区",
+    "city": "呼伦贝尔市",
+    "longitude": 119.7658,
+    "latitude": 49.2116,
+    "category": "自然景观"
+  },
+  {
+    "place_identity": "ccf36bc8-f8e0-5269-b374-3d5abee7e108",
+    "name": "沈阳故宫",
+    "province": "辽宁省",
+    "city": "沈阳市",
+    "longitude": 123.4536,
+    "latitude": 41.7964,
+    "category": "历史建筑"
+  },
+  {
+    "place_identity": "18165963-d623-5b96-80d1-517e6e7f66fd",
+    "name": "大连星海广场",
+    "province": "辽宁省",
+    "city": "大连市",
+    "longitude": 121.5878,
+    "latitude": 38.8667,
+    "category": "城市景观"
+  },
+  {
+    "place_identity": "81ba4e97-7c60-59d6-8ac9-c590d63f252d",
+    "name": "长白山",
+    "province": "吉林省",
+    "city": "延边州",
+    "longitude": 128.0765,
+    "latitude": 42.006,
+    "category": "自然景观"
+  },
+  {
+    "place_identity": "daf1de09-e423-548d-9288-0afaf97adcc6",
+    "name": "圣索菲亚教堂",
+    "province": "黑龙江省",
+    "city": "哈尔滨市",
+    "longitude": 126.6229,
+    "latitude": 45.765,
+    "category": "历史建筑"
+  },
+  {
+    "place_identity": "8d70208b-df62-5eab-a7d0-f3c615ec68a9",
+    "name": "外滩",
+    "province": "上海市",
+    "city": "上海市",
+    "longitude": 121.4903,
+    "latitude": 31.24,
+    "category": "城市景观"
+  },
+  {
+    "place_identity": "2294478c-af25-515d-877e-50ee0c4da444",
+    "name": "豫园",
+    "province": "上海市",
+    "city": "上海市",
+    "longitude": 121.492,
+    "latitude": 31.2271,
+    "category": "园林"
+  },
+  {
+    "place_identity": "9eda95d2-1e83-5241-8f9c-0bdd376318b9",
+    "name": "拙政园",
+    "province": "江苏省",
+    "city": "苏州市",
+    "longitude": 120.6298,
+    "latitude": 31.3246,
+    "category": "园林"
+  },
+  {
+    "place_identity": "3081b658-e6e9-5107-bbf5-87606e3f418e",
+    "name": "中山陵",
+    "province": "江苏省",
+    "city": "南京市",
+    "longitude": 118.8488,
+    "latitude": 32.0594,
+    "category": "历史建筑"
+  },
+  {
+    "place_identity": "cae1497f-26c5-5f71-8b1f-46c71c9fb271",
+    "name": "西湖",
+    "province": "浙江省",
+    "city": "杭州市",
+    "longitude": 120.148,
+    "latitude": 30.2431,
+    "category": "世界遗产"
+  },
+  {
+    "place_identity": "f3a5c974-e724-50cc-8778-7fb897a75f68",
+    "name": "普陀山",
+    "province": "浙江省",
+    "city": "舟山市",
+    "longitude": 122.388,
+    "latitude": 30.0002,
+    "category": "宗教文化"
+  },
+  {
+    "place_identity": "ced41c70-916c-592e-b065-504addb8911c",
+    "name": "黄山",
+    "province": "安徽省",
+    "city": "黄山市",
+    "longitude": 118.1728,
+    "latitude": 30.131,
+    "category": "世界遗产"
+  },
+  {
+    "place_identity": "f7a44526-9e1d-5d7b-baad-bdfb0758fcdb",
+    "name": "宏村",
+    "province": "安徽省",
+    "city": "黄山市",
+    "longitude": 117.9993,
+    "latitude": 30.0117,
+    "category": "世界遗产"
+  },
+  {
+    "place_identity": "6f61b47c-d57f-55bd-8842-65ffa13ed523",
+    "name": "鼓浪屿",
+    "province": "福建省",
+    "city": "厦门市",
+    "longitude": 118.066,
+    "latitude": 24.4488,
+    "category": "世界遗产"
+  },
+  {
+    "place_identity": "c24417d4-dc9b-5c68-8b82-a7051e770d16",
+    "name": "武夷山",
+    "province": "福建省",
+    "city": "南平市",
+    "longitude": 117.717,
+    "latitude": 27.756,
+    "category": "世界遗产"
+  },
+  {
+    "place_identity": "d986831f-af38-5cc4-b632-83c741e8b402",
+    "name": "庐山",
+    "province": "江西省",
+    "city": "九江市",
+    "longitude": 115.992,
+    "latitude": 29.56,
+    "category": "世界遗产"
+  },
+  {
+    "place_identity": "4cdfd56f-d3be-597b-ba09-ee65595d6826",
+    "name": "三清山",
+    "province": "江西省",
+    "city": "上饶市",
+    "longitude": 118.063,
+    "latitude": 28.902,
+    "category": "自然景观"
+  },
+  {
+    "place_identity": "ad55cfe9-44e2-52b5-b405-1e18e11a3f32",
+    "name": "泰山",
+    "province": "山东省",
+    "city": "泰安市",
+    "longitude": 117.103,
+    "latitude": 36.25,
+    "category": "世界遗产"
+  },
+  {
+    "place_identity": "82dfde94-6abf-5626-8890-9be07c0ba838",
+    "name": "曲阜三孔",
+    "province": "山东省",
+    "city": "曲阜市",
+    "longitude": 116.989,
+    "latitude": 35.596,
+    "category": "世界遗产"
+  },
+  {
+    "place_identity": "2f64911e-037f-58b9-aa5c-1a3154ef25e1",
+    "name": "龙门石窟",
+    "province": "河南省",
+    "city": "洛阳市",
+    "longitude": 112.469,
+    "latitude": 34.558,
+    "category": "世界遗产"
+  },
+  {
+    "place_identity": "fa8c14ae-2300-5a5f-ad6f-6b8b9335baac",
+    "name": "少林寺",
+    "province": "河南省",
+    "city": "登封市",
+    "longitude": 112.9388,
+    "latitude": 34.5096,
+    "category": "宗教文化"
+  },
+  {
+    "place_identity": "20e2acc8-e870-5a8e-bb84-4653b40e2207",
+    "name": "黄鹤楼",
+    "province": "湖北省",
+    "city": "武汉市",
+    "longitude": 114.3075,
+    "latitude": 30.5447,
+    "category": "历史建筑"
+  },
+  {
+    "place_identity": "7920f2a6-bc85-514d-b228-f72e46fd00ae",
+    "name": "武当山",
+    "province": "湖北省",
+    "city": "十堰市",
+    "longitude": 110.996,
+    "latitude": 32.4,
+    "category": "世界遗产"
+  },
+  {
+    "place_identity": "8c3a5845-4adf-5b92-b280-416399c7ea60",
+    "name": "张家界国家森林公园",
+    "province": "湖南省",
+    "city": "张家界市",
+    "longitude": 110.479,
+    "latitude": 29.325,
+    "category": "自然景观"
+  },
+  {
+    "place_identity": "d6001ee8-d1f4-5cea-b541-f67a74fccdb1",
+    "name": "凤凰古城",
+    "province": "湖南省",
+    "city": "湘西州",
+    "longitude": 109.5996,
+    "latitude": 27.948,
+    "category": "历史建筑"
+  },
+  {
+    "place_identity": "d1ace770-f9ea-5109-a38c-2df53483e591",
+    "name": "岳阳楼",
+    "province": "湖南省",
+    "city": "岳阳市",
+    "longitude": 113.115,
+    "latitude": 29.383,
+    "category": "历史建筑"
+  },
+  {
+    "place_identity": "b2d5fbd0-6bd2-55b2-a3f7-478b0787b73c",
+    "name": "丹霞山",
+    "province": "广东省",
+    "city": "韶关市",
+    "longitude": 113.743,
+    "latitude": 25.371,
+    "category": "世界遗产"
+  },
+  {
+    "place_identity": "0ada4ec9-5bc4-5d43-9adf-7905da792942",
+    "name": "开平碉楼与村落",
+    "province": "广东省",
+    "city": "江门市",
+    "longitude": 112.698,
+    "latitude": 22.376,
+    "category": "世界遗产"
+  },
+  {
+    "place_identity": "ae503925-27ce-57bd-a43b-51e5ac866bc5",
+    "name": "漓江",
+    "province": "广西壮族自治区",
+    "city": "桂林市",
+    "longitude": 110.495,
+    "latitude": 25.273,
+    "category": "自然景观"
+  },
+  {
+    "place_identity": "a905b092-e063-5102-911c-9baab0155b2a",
+    "name": "龙脊梯田",
+    "province": "广西壮族自治区",
+    "city": "桂林市",
+    "longitude": 110.154,
+    "latitude": 25.816,
+    "category": "自然景观"
+  },
+  {
+    "place_identity": "9b6b2005-a852-58f0-a3e9-dfe4deca544f",
+    "name": "蜈支洲岛",
+    "province": "海南省",
+    "city": "三亚市",
+    "longitude": 109.759,
+    "latitude": 18.312,
+    "category": "自然景观"
+  },
+  {
+    "place_identity": "323eb234-9ca4-53e6-9c13-9e4f0f9fd1ea",
+    "name": "亚龙湾",
+    "province": "海南省",
+    "city": "三亚市",
+    "longitude": 109.653,
+    "latitude": 18.229,
+    "category": "自然景观"
+  },
+  {
+    "place_identity": "d09cc231-16b8-5d4d-b7a0-103e0a65ac22",
+    "name": "武隆喀斯特",
+    "province": "重庆市",
+    "city": "重庆市",
+    "longitude": 107.759,
+    "latitude": 29.325,
+    "category": "世界遗产"
+  },
+  {
+    "place_identity": "31ae2f2c-7f21-59ae-a955-7319ec9f4535",
+    "name": "洪崖洞",
+    "province": "重庆市",
+    "city": "重庆市",
+    "longitude": 106.586,
+    "latitude": 29.563,
+    "category": "城市景观"
+  },
+  {
+    "place_identity": "8a73efd0-5c60-501d-aa24-ef5e58ed3f19",
+    "name": "九寨沟",
+    "province": "四川省",
+    "city": "阿坝州",
+    "longitude": 103.918,
+    "latitude": 33.26,
+    "category": "世界遗产"
+  },
+  {
+    "place_identity": "f6192863-4862-5583-9aab-5471dcbe24be",
+    "name": "峨眉山",
+    "province": "四川省",
+    "city": "乐山市",
+    "longitude": 103.338,
+    "latitude": 29.525,
+    "category": "世界遗产"
+  },
+  {
+    "place_identity": "dcac10ca-c5c9-5dfc-9b6f-e6da6d8fa8ab",
+    "name": "乐山大佛",
+    "province": "四川省",
+    "city": "乐山市",
+    "longitude": 103.773,
+    "latitude": 29.544,
+    "category": "世界遗产"
+  },
+  {
+    "place_identity": "9297aad4-093f-5834-b512-8f0de31b772c",
+    "name": "黄果树瀑布",
+    "province": "贵州省",
+    "city": "安顺市",
+    "longitude": 105.672,
+    "latitude": 25.991,
+    "category": "自然景观"
+  },
+  {
+    "place_identity": "92ff005b-204b-5c80-97d3-d54c49eba9fb",
+    "name": "西江千户苗寨",
+    "province": "贵州省",
+    "city": "黔东南州",
+    "longitude": 108.176,
+    "latitude": 26.505,
+    "category": "人文景观"
+  },
+  {
+    "place_identity": "1e0bc4f4-a60d-531d-848d-db90615b438f",
+    "name": "石林",
+    "province": "云南省",
+    "city": "昆明市",
+    "longitude": 103.324,
+    "latitude": 24.811,
+    "category": "世界遗产"
+  },
+  {
+    "place_identity": "4adecfda-a4a4-5248-aa65-4e519e1b6e16",
+    "name": "丽江古城",
+    "province": "云南省",
+    "city": "丽江市",
+    "longitude": 100.234,
+    "latitude": 26.872,
+    "category": "世界遗产"
+  },
+  {
+    "place_identity": "33b14f7b-35e1-5121-9000-74d393c63774",
+    "name": "大理古城",
+    "province": "云南省",
+    "city": "大理州",
+    "longitude": 100.168,
+    "latitude": 25.694,
+    "category": "历史建筑"
+  },
+  {
+    "place_identity": "53204fc8-cc09-5ef6-b757-db994a7decb3",
+    "name": "布达拉宫",
+    "province": "西藏自治区",
+    "city": "拉萨市",
+    "longitude": 91.1172,
+    "latitude": 29.655,
+    "category": "世界遗产"
+  },
+  {
+    "place_identity": "0fbf82d2-46be-5dea-af08-12fbb54178a3",
+    "name": "纳木错",
+    "province": "西藏自治区",
+    "city": "拉萨市",
+    "longitude": 90.6,
+    "latitude": 30.7,
+    "category": "自然景观"
+  },
+  {
+    "place_identity": "801235ac-e9c7-58f9-b9fe-9c152606d137",
+    "name": "秦始皇帝陵博物院",
+    "province": "陕西省",
+    "city": "西安市",
+    "longitude": 109.278,
+    "latitude": 34.385,
+    "category": "世界遗产"
+  },
+  {
+    "place_identity": "d472a150-1373-51b3-a8a4-c5d590c8fdb5",
+    "name": "华山",
+    "province": "陕西省",
+    "city": "渭南市",
+    "longitude": 110.087,
+    "latitude": 34.545,
+    "category": "自然景观"
+  },
+  {
+    "place_identity": "c72cf448-fb7e-5ea2-a518-5430acf8fc74",
+    "name": "西安城墙",
+    "province": "陕西省",
+    "city": "西安市",
+    "longitude": 108.947,
+    "latitude": 34.258,
+    "category": "历史建筑"
+  },
+  {
+    "place_identity": "eed05497-fc19-5ff4-9907-53a99831d2dd",
+    "name": "莫高窟",
+    "province": "甘肃省",
+    "city": "敦煌市",
+    "longitude": 94.683,
+    "latitude": 40.04,
+    "category": "世界遗产"
+  },
+  {
+    "place_identity": "861f5ee5-24e2-5078-bc52-4b68a6b7ba6a",
+    "name": "张掖七彩丹霞",
+    "province": "甘肃省",
+    "city": "张掖市",
+    "longitude": 100.116,
+    "latitude": 38.919,
+    "category": "自然景观"
+  },
+  {
+    "place_identity": "eef890a3-50bb-51d2-9970-cb1dd95f7c4f",
+    "name": "青海湖",
+    "province": "青海省",
+    "city": "海南州",
+    "longitude": 100.19,
+    "latitude": 36.89,
+    "category": "自然景观"
+  },
+  {
+    "place_identity": "5b1ff9d3-0e57-559a-9028-ccb1a53548fd",
+    "name": "茶卡盐湖",
+    "province": "青海省",
+    "city": "海西州",
+    "longitude": 99.08,
+    "latitude": 36.79,
+    "category": "自然景观"
+  },
+  {
+    "place_identity": "c091e1aa-87a5-5c37-b86e-9bada5b7d565",
+    "name": "沙坡头",
+    "province": "宁夏回族自治区",
+    "city": "中卫市",
+    "longitude": 105.001,
+    "latitude": 37.478,
+    "category": "自然景观"
+  },
+  {
+    "place_identity": "0d53ac83-b5a3-55fa-a2e1-af3e8ce59c53",
+    "name": "西夏王陵",
+    "province": "宁夏回族自治区",
+    "city": "银川市",
+    "longitude": 105.975,
+    "latitude": 38.618,
+    "category": "历史遗址"
+  },
+  {
+    "place_identity": "14688c52-5336-5312-9968-43810d21b172",
+    "name": "喀纳斯",
+    "province": "新疆维吾尔自治区",
+    "city": "阿勒泰地区",
+    "longitude": 87.014,
+    "latitude": 48.82,
+    "category": "自然景观"
+  },
+  {
+    "place_identity": "26db9494-9243-5353-9a2c-698324937157",
+    "name": "天山天池",
+    "province": "新疆维吾尔自治区",
+    "city": "昌吉州",
+    "longitude": 88.126,
+    "latitude": 43.883,
+    "category": "自然景观"
+  },
+  {
+    "place_identity": "cdb02791-fe90-5742-9628-03612000ddf4",
+    "name": "喀什古城",
+    "province": "新疆维吾尔自治区",
+    "city": "喀什市",
+    "longitude": 75.989,
+    "latitude": 39.47,
+    "category": "人文景观"
+  }
+]

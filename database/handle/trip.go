@@ -255,6 +255,12 @@ func (t *TripHandle) QueryPlace(
 	if place.PlaceStatus != define.PlaceStatusActive {
 		return place, true, nil
 	}
+	// Preset and other local providers have no Amap identifier to refresh.
+	// Their stored data remains the source of truth until an explicit import
+	// updates it.
+	if place.ProviderName != define.PlaceProviderNameDefault {
+		return place, true, nil
+	}
 	if place.SyncUnixTime > 0 && time.Now().Unix() <= place.SyncUnixTime+PlaceRefreshDefaultTime {
 		return place, true, nil
 	}
