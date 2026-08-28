@@ -169,4 +169,14 @@ const (
 	LangKeyAvatarQueryUserInvalid        = "error.avatar.query.user.invalid"   // 头像查询目标无效
 	LangKeyAvatarUploadDataInvalid       = "error.avatar.upload.data.invalid"  // 头像上传数据为空
 	LangKeyAuthRequestBodyInvalid        = "error.auth.request.body.invalid"   // 认证请求体格式无效
+	LangKeyMessageRequestBodyInvalid     = "error.message.request.body.invalid"
+	LangKeyMessageTypeInvalid            = "error.message.type.invalid"
+	LangKeyMessageContentInvalid         = "error.message.content.invalid"
+	LangKeyMessageTitleInvalid           = "error.message.title.invalid"
+	LangKeyMessagePermissionDenied       = "error.message.permission.denied"
+	LangKeyMessageFamilyNotFound         = "error.message.family.not.found"
+	LangKeyMessageNotFound               = "error.message.not.found"
+	LangKeyMessageCreateUnknown          = "error.message.create.unknown"
+	LangKeyMessageQueryUnknown           = "error.message.query.unknown"
+	LangKeyMessageReadUnknown            = "error.message.read.unknown"
 )

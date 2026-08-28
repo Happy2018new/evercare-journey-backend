@@ -7,6 +7,7 @@ import (
 	"github.com/Happy2018new/evercare-journey-backend/service/auth"
 	"github.com/Happy2018new/evercare-journey-backend/service/family"
 	"github.com/Happy2018new/evercare-journey-backend/service/hot"
+	"github.com/Happy2018new/evercare-journey-backend/service/message"
 	"github.com/Happy2018new/evercare-journey-backend/service/profile"
 	"github.com/Happy2018new/evercare-journey-backend/service/trip"
 	"github.com/gin-gonic/gin"
@@ -72,6 +73,15 @@ func registerFamilyProcessor(router *gin.Engine) {
 	familyGroup.POST("/trip/unpin", family.HandleUnpinTrip)
 }
 
+func registerMessageProcessor(router *gin.Engine) {
+	group := router.Group("/message")
+	group.POST("/query", message.HandleQuery)
+	group.POST("/send_announcement", message.HandleSendAnnouncement)
+	group.POST("/send_sos", message.HandleSendSOS)
+	group.POST("/send_chat", message.HandleSendChat)
+	group.POST("/read", message.HandleRead)
+}
+
 func InitAndMakeRouter() *gin.Engine {
 	router := gin.Default()
 	router.SetTrustedProxies(nil)
@@ -93,6 +103,7 @@ func InitAndMakeRouter() *gin.Engine {
 	registerTripProcessor(router)
 	registerHotProcessor(router)
 	registerFamilyProcessor(router)
+	registerMessageProcessor(router)
 
 	return router
 }
