@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/Happy2018new/evercare-journey-backend/service/auth"
+	"github.com/Happy2018new/evercare-journey-backend/service/family"
 	"github.com/Happy2018new/evercare-journey-backend/service/hot"
 	"github.com/Happy2018new/evercare-journey-backend/service/profile"
 	"github.com/Happy2018new/evercare-journey-backend/service/trip"
@@ -57,6 +58,20 @@ func registerHotProcessor(router *gin.Engine) {
 	hotGroup.POST("/place_image", hot.HandleHotPlaceImage)
 }
 
+func registerFamilyProcessor(router *gin.Engine) {
+	familyGroup := router.Group("/family")
+	familyGroup.POST("/create", family.HandleCreate)
+	familyGroup.POST("/query", family.HandleQuery)
+	familyGroup.POST("/name", family.HandleUpdateName)
+	familyGroup.POST("/invite_code", family.HandleGenerateCode)
+	familyGroup.POST("/join", family.HandleJoin)
+	familyGroup.POST("/leave", family.HandleLeave)
+	familyGroup.POST("/member/permission", family.HandleUpdateMemberPermission)
+	familyGroup.POST("/member/remove", family.HandleRemoveMember)
+	familyGroup.POST("/trip/pin", family.HandlePinTrip)
+	familyGroup.POST("/trip/unpin", family.HandleUnpinTrip)
+}
+
 func InitAndMakeRouter() *gin.Engine {
 	router := gin.Default()
 	router.SetTrustedProxies(nil)
@@ -77,6 +92,7 @@ func InitAndMakeRouter() *gin.Engine {
 	registerProfileProcessor(router)
 	registerTripProcessor(router)
 	registerHotProcessor(router)
+	registerFamilyProcessor(router)
 
 	return router
 }

@@ -14,12 +14,13 @@ type TripNodeData struct {
 }
 
 type TripData struct {
-	TripIdentity   string         `json:"trip_identity"`
-	TripName       string         `json:"trip_name"`
-	TripDate       time.Time      `json:"trip_date"`
-	TravelMode     uint8          `json:"travel_mode"`
-	TripStatus     uint8          `json:"trip_status"`
-	CurrentVersion uint32         `json:"current_version"`
-	UpdateUnixTime int64          `json:"update_unix_time"`
-	Nodes          []TripNodeData `json:"nodes"`
+	TripIdentity      string         `json:"trip_identity"`
+	OwnerUserIdentity string         `json:"owner_user_identity"`
+	TripName          string         `json:"trip_name"`
+	TripDate          time.Time      `json:"trip_date"`
+	TravelMode        uint8          `json:"travel_mode"`
+	TripStatus        uint8          `json:"trip_status"`
+	CurrentVersion    uint32         `json:"current_version"`
+	UpdateUnixTime    int64          `json:"update_unix_time"`
+	Nodes             []TripNodeData `json:"nodes"`
 }

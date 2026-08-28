@@ -13,6 +13,9 @@ func AutoMigrateTable(database *gorm.DB) error {
 		&UserSession{},
 		&PlaceInfo{},
 		&TripInfo{},
+		&FamilyInfo{},
+		&FamilyMember{},
+		&FamilyPinnedTrip{},
 		&HotPlace{},
 	)
 	if err != nil {

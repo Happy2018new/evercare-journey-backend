@@ -341,14 +341,15 @@ func tripDataFromInfo(trip define.TripInfo, nodes define.MulTripNode) TripData {
 		})
 	}
 	return TripData{
-		TripIdentity:   trip.TripIdentity,
-		TripName:       trip.TripName,
-		TripDate:       trip.TripDate,
-		TravelMode:     trip.TravelMode,
-		TripStatus:     trip.TripStatus,
-		CurrentVersion: trip.CurrentVersion,
-		UpdateUnixTime: trip.UpdateUnixTime,
-		Nodes:          tripNodes,
+		TripIdentity:      trip.TripIdentity,
+		OwnerUserIdentity: trip.OwnerInfo.UserIdentity,
+		TripName:          trip.TripName,
+		TripDate:          trip.TripDate,
+		TravelMode:        trip.TravelMode,
+		TripStatus:        trip.TripStatus,
+		CurrentVersion:    trip.CurrentVersion,
+		UpdateUnixTime:    trip.UpdateUnixTime,
+		Nodes:             tripNodes,
 	}
 }
 

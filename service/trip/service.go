@@ -128,9 +128,21 @@ func HandleQueryTrips(c *gin.Context) {
 
 	tripData := make([]TripData, 0, len(request.TripIdentity))
 	for index, identity := range request.TripIdentity {
-		tripInfo, generalErr := loadOwnedTrip(environment.DB.Database(), user.UserUniqueID, strings.TrimSpace(identity), source)
+		tripInfo, found, generalErr := environment.DB.TripHandle().QueryTripByIdentity(environment.DB.Database(), strings.TrimSpace(identity))
 		if generalErr != nil {
 			respondTripError(c, QueryTripsResponse{}, source, generalErr.AppendSource(fmt.Sprintf("index=%d", index)))
+			return
+		}
+		if !found {
+			respondTripError(c, QueryTripsResponse{}, source, define.NewGeneralError(source, fmt.Errorf("target trip not found"), define.LangKeyTripQueryNotFoundErr))
+			return
+		}
+		canRead, readErr := environment.DB.FamilyHandle().CanReadTrip(environment.DB.Database(), user.UserUniqueID, tripInfo.UserUniqueID)
+		if readErr != nil || !canRead {
+			if readErr == nil {
+				readErr = define.NewGeneralError(source, fmt.Errorf("target trip is not readable"), define.LangKeyTripQueryNotFoundErr)
+			}
+			respondTripError(c, QueryTripsResponse{}, source, readErr.AppendSource(fmt.Sprintf("index=%d", index)))
 			return
 		}
 		nodes, foundNodes, nodesErr := environment.DB.TripHandle().LoadTripNodesWithError(tripInfo.TripIdentity)
@@ -199,9 +211,21 @@ func HandleQueryTripVersion(c *gin.Context) {
 	}
 	versions := make([]TripVersionData, 0, len(request.TripIdentity))
 	for index, identity := range request.TripIdentity {
-		tripInfo, generalErr := loadOwnedTrip(environment.DB.Database(), user.UserUniqueID, strings.TrimSpace(identity), source)
+		tripInfo, found, generalErr := environment.DB.TripHandle().QueryTripByIdentity(environment.DB.Database(), strings.TrimSpace(identity))
 		if generalErr != nil {
 			respondTripError(c, QueryTripVersionResponse{}, source, generalErr.AppendSource(fmt.Sprintf("index=%d", index)))
+			return
+		}
+		if !found {
+			respondTripError(c, QueryTripVersionResponse{}, source, define.NewGeneralError(source, fmt.Errorf("target trip not found"), define.LangKeyTripQueryNotFoundErr))
+			return
+		}
+		canRead, readErr := environment.DB.FamilyHandle().CanReadTrip(environment.DB.Database(), user.UserUniqueID, tripInfo.UserUniqueID)
+		if readErr != nil || !canRead {
+			if readErr == nil {
+				readErr = define.NewGeneralError(source, fmt.Errorf("target trip is not readable"), define.LangKeyTripQueryNotFoundErr)
+			}
+			respondTripError(c, QueryTripVersionResponse{}, source, readErr.AppendSource(fmt.Sprintf("index=%d", index)))
 			return
 		}
 		versions = append(versions, TripVersionData{

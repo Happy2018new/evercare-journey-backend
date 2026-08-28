@@ -140,8 +140,33 @@ const (
 	LangKeyProfileActionInvalid      = "error.profile.action.invalid"       // 用户资料操作类型无效
 	LangKeyProfileGenderInvalid      = "error.profile.gender.invalid"       // 用户性别无效
 	LangKeyProfileAgeInvalid         = "error.profile.age.invalid"          // 用户年龄无效
-	LangKeyAvatarQueryActionInvalid  = "error.avatar.query.action.invalid"  // 头像查询操作类型无效
-	LangKeyAvatarQueryUserInvalid    = "error.avatar.query.user.invalid"    // 头像查询目标无效
-	LangKeyAvatarUploadDataInvalid   = "error.avatar.upload.data.invalid"   // 头像上传数据为空
-	LangKeyAuthRequestBodyInvalid    = "error.auth.request.body.invalid"    // 认证请求体格式无效
+
+	LangKeyFamilyRequestBodyInvalid      = "error.family.request.body.invalid"
+	LangKeyFamilyIdentityInvalid         = "error.family.identity.invalid"
+	LangKeyFamilyNameInvalid             = "error.family.name.invalid"
+	LangKeyFamilyCreateUnknown           = "error.family.create.unknown"
+	LangKeyFamilyUpdateUnknown           = "error.family.update.unknown"
+	LangKeyFamilyQueryUnknown            = "error.family.query.unknown"
+	LangKeyFamilyNotFound                = "error.family.not.found"
+	LangKeyFamilyAlreadyJoined           = "error.family.already.joined"
+	LangKeyFamilyInviteCodeInvalid       = "error.family.invite.code.invalid"
+	LangKeyFamilyInviteCodeExpired       = "error.family.invite.code.expired"
+	LangKeyFamilyInviteCodeCreateUnknown = "error.family.invite.code.create.unknown"
+	LangKeyFamilyJoinUnknown             = "error.family.join.unknown"
+	LangKeyFamilyLeaveUnknown            = "error.family.leave.unknown"
+	LangKeyFamilyMemberQueryUnknown      = "error.family.member.query.unknown"
+	LangKeyFamilyMemberNotFound          = "error.family.member.not.found"
+	LangKeyFamilyMemberPermissionInvalid = "error.family.member.permission.invalid"
+	LangKeyFamilyMemberPermissionDenied  = "error.family.member.permission.denied"
+	LangKeyFamilyMemberPermissionSelf    = "error.family.member.permission.self.invalid"
+	LangKeyFamilyMemberUpdateUnknown     = "error.family.member.update.unknown"
+	LangKeyFamilyMemberRemoveSelfInvalid = "error.family.member.remove.self.invalid"
+	LangKeyFamilyPinnedTripQueryUnknown  = "error.family.pinned.trip.query.unknown"
+	LangKeyFamilyPinnedTripNotFound      = "error.family.pinned.trip.not.found"
+	LangKeyFamilyPinnedTripUpdateUnknown = "error.family.pinned.trip.update.unknown"
+	LangKeyFamilyPinnedTripInvalid       = "error.family.pinned.trip.invalid"
+	LangKeyAvatarQueryActionInvalid      = "error.avatar.query.action.invalid" // 头像查询操作类型无效
+	LangKeyAvatarQueryUserInvalid        = "error.avatar.query.user.invalid"   // 头像查询目标无效
+	LangKeyAvatarUploadDataInvalid       = "error.avatar.upload.data.invalid"  // 头像上传数据为空
+	LangKeyAuthRequestBodyInvalid        = "error.auth.request.body.invalid"   // 认证请求体格式无效
 )
