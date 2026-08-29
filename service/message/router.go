@@ -57,3 +57,5 @@ type ReadRequest struct {
 	MessageIdentity string `json:"message_identity"`
 }
 type ReadResponse struct{ general.BasicResponseInfo }
+type ReadAllRequest struct{ general.BasicSessionInfo }
+type ReadAllResponse struct{ general.BasicResponseInfo }

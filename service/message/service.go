@@ -71,6 +71,9 @@ func write(c *gin.Context, response any, ge *define.GeneralError) {
 	case ReadResponse:
 		value.BasicResponseInfo = info
 		c.JSON(http.StatusOK, value)
+	case ReadAllResponse:
+		value.BasicResponseInfo = info
+		c.JSON(http.StatusOK, value)
 	}
 }
 
@@ -286,4 +289,28 @@ func HandleRead(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, ReadResponse{BasicResponseInfo: general.SuccResponseInfo()})
+}
+
+func HandleReadAll(c *gin.Context) {
+	const source = "HandleReadAllMessages"
+	var request ReadAllRequest
+	if err := c.ShouldBind(&request); err != nil {
+		write(c, ReadAllResponse{}, define.NewGeneralError(source, err, define.LangKeyMessageRequestBodyInvalid))
+		return
+	}
+	user, ge := loadUser(request.BasicSessionInfo, source)
+	if ge != nil {
+		write(c, ReadAllResponse{}, ge)
+		return
+	}
+	family, _, ge := loadFamily(user.UserUniqueID, source)
+	if ge != nil {
+		write(c, ReadAllResponse{}, ge)
+		return
+	}
+	if ge = environment.DB.MessageHandle().MarkAllRead(environment.DB.Database(), user.UserUniqueID, family.FamilyUniqueID); ge != nil {
+		write(c, ReadAllResponse{}, ge)
+		return
+	}
+	c.JSON(http.StatusOK, ReadAllResponse{BasicResponseInfo: general.SuccResponseInfo()})
 }

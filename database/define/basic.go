@@ -19,6 +19,7 @@ func AutoMigrateTable(database *gorm.DB) error {
 		&HotPlace{},
 		&MessageInfo{},
 		&MessageRecipient{},
+		&SafetySetting{},
 	)
 	if err != nil {
 		return fmt.Errorf("AutoMigrateTable: %w", err)

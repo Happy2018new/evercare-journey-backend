@@ -179,4 +179,8 @@ const (
 	LangKeyMessageCreateUnknown          = "error.message.create.unknown"
 	LangKeyMessageQueryUnknown           = "error.message.query.unknown"
 	LangKeyMessageReadUnknown            = "error.message.read.unknown"
+	LangKeySafetyRequestBodyInvalid      = "error.security.request.body.invalid"
+	LangKeySafetySettingInvalid          = "error.security.setting.invalid"
+	LangKeySafetySettingQueryUnknown     = "error.security.setting.query.unknown"
+	LangKeySafetySettingUpdateUnknown    = "error.security.setting.update.unknown"
 )

@@ -78,6 +78,17 @@ func (h *MessageHandle) MarkRead(tx *gorm.DB, messageIdentity string, userID uin
 	return nil
 }
 
+func (h *MessageHandle) MarkAllRead(tx *gorm.DB, userID uint32, familyID uint64) *define.GeneralError {
+	messageIDs := tx.Model(&define.MessageInfo{}).Select("message_identity").Where("family_unique_id = ?", familyID)
+	result := tx.Model(&define.MessageRecipient{}).
+		Where("recipient_user_unique_id = ? AND read_unix_time = 0 AND message_unique_id IN (?)", userID, messageIDs).
+		Update("read_unix_time", time.Now().Unix())
+	if result.Error != nil {
+		return define.NewGeneralError("MarkAllMessagesRead", result.Error, define.LangKeyMessageReadUnknown)
+	}
+	return nil
+}
+
 func (h *MessageHandle) CountUnread(tx *gorm.DB, userID uint32, familyID uint64) (int64, *define.GeneralError) {
 	var count int64
 	result := tx.Table("message_recipients AS r").Joins("JOIN message_infos AS m ON m.message_identity = r.message_unique_id").Where("r.recipient_user_unique_id = ? AND m.family_unique_id = ? AND r.read_unix_time = 0", userID, familyID).Count(&count)
