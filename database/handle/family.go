@@ -22,7 +22,13 @@ type FamilyHandle struct{}
 func NewFamilyHandle() *FamilyHandle { return new(FamilyHandle) }
 
 func (h *FamilyHandle) CreateFamily(tx *gorm.DB, ownerUserUniqueID uint32, familyName string) (define.FamilyInfo, *define.GeneralError) {
-	family := define.FamilyInfo{FamilyIdentity: uuid.NewString(), FamilyName: strings.TrimSpace(familyName), OwnerUserUniqueID: ownerUserUniqueID, CreatedUnixTime: time.Now().Unix(), UpdateUnixTime: time.Now().Unix()}
+	family := define.FamilyInfo{
+		FamilyIdentity:    uuid.NewString(),
+		FamilyName:        strings.TrimSpace(familyName),
+		OwnerUserUniqueID: ownerUserUniqueID,
+		CreatedUnixTime:   time.Now().Unix(),
+		UpdateUnixTime:    time.Now().Unix(),
+	}
 	err := tx.Transaction(func(tx *gorm.DB) error {
 		if result := tx.Where("user_unique_id = ?", ownerUserUniqueID).First(&define.FamilyMember{}); result.Error == nil {
 			return define.NewGeneralError("CreateFamily", fmt.Errorf("user already belongs to a family"), define.LangKeyFamilyAlreadyJoined)
@@ -32,7 +38,12 @@ func (h *FamilyHandle) CreateFamily(tx *gorm.DB, ownerUserUniqueID uint32, famil
 		if result := tx.Create(&family); result.Error != nil {
 			return result.Error
 		}
-		member := define.FamilyMember{FamilyUniqueID: family.FamilyUniqueID, UserUniqueID: ownerUserUniqueID, PermissionLevel: define.FamilyMemberPermissionAdmin, JoinedUnixTime: time.Now().Unix()}
+		member := define.FamilyMember{
+			FamilyUniqueID:  family.FamilyUniqueID,
+			UserUniqueID:    ownerUserUniqueID,
+			PermissionLevel: define.FamilyMemberPermissionAdmin,
+			JoinedUnixTime:  time.Now().Unix(),
+		}
 		if result := tx.Create(&member); result.Error != nil {
 			return result.Error
 		}
@@ -154,7 +165,13 @@ func (h *FamilyHandle) RemoveMember(tx *gorm.DB, familyUniqueID uint64, userUniq
 
 func (h *FamilyHandle) LeaveFamily(tx *gorm.DB, family define.FamilyInfo, member define.FamilyMember) *define.GeneralError {
 	err := tx.Transaction(func(tx *gorm.DB) error {
-		if result := tx.Where("family_unique_id = ? AND trip_owner_user_unique_id = ?", family.FamilyUniqueID, member.UserUniqueID).Delete(&define.FamilyPinnedTrip{}); result.Error != nil { return result.Error }
+		if result := tx.Where(
+			"family_unique_id = ? AND trip_owner_user_unique_id = ?",
+			family.FamilyUniqueID,
+			member.UserUniqueID,
+		).Delete(&define.FamilyPinnedTrip{}); result.Error != nil {
+			return result.Error
+		}
 		if result := tx.Where("family_unique_id = ? AND user_unique_id = ?", family.FamilyUniqueID, member.UserUniqueID).Delete(&define.FamilyMember{}); result.Error != nil {
 			return result.Error
 		}
@@ -204,7 +221,13 @@ func (h *FamilyHandle) AddMember(tx *gorm.DB, familyUniqueID uint64, userUniqueI
 }
 
 func (h *FamilyHandle) PinTrip(tx *gorm.DB, familyUniqueID uint64, tripIdentity string, tripOwnerUserUniqueID uint32, pinnedByUserUniqueID uint32) *define.GeneralError {
-	pin := define.FamilyPinnedTrip{FamilyUniqueID: familyUniqueID, TripIdentity: tripIdentity, TripOwnerUserUniqueID: tripOwnerUserUniqueID, PinnedByUserUniqueID: pinnedByUserUniqueID, CreatedUnixTime: time.Now().Unix()}
+	pin := define.FamilyPinnedTrip{
+		FamilyUniqueID:        familyUniqueID,
+		TripIdentity:          tripIdentity,
+		TripOwnerUserUniqueID: tripOwnerUserUniqueID,
+		PinnedByUserUniqueID:  pinnedByUserUniqueID,
+		CreatedUnixTime:       time.Now().Unix(),
+	}
 	if result := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&pin); result.Error != nil {
 		return define.NewGeneralError("PinFamilyTrip", result.Error, define.LangKeyFamilyPinnedTripUpdateUnknown)
 	}
@@ -233,7 +256,11 @@ func (h *FamilyHandle) QueryPinnedTrips(tx *gorm.DB, familyUniqueID uint64) ([]d
 
 func (h *FamilyHandle) QueryFamilyTrips(tx *gorm.DB, familyUniqueID uint64) ([]define.TripInfo, *define.GeneralError) {
 	var trips []define.TripInfo
-	result := tx.Table("trip_infos").Joins("JOIN family_members ON family_members.user_unique_id = trip_infos.user_unique_id").Where("family_members.family_unique_id = ?", familyUniqueID).Order("trip_infos.trip_date ASC, trip_infos.trip_unique_id ASC").Find(&trips)
+	result := tx.Table("trip_infos").
+		Joins("JOIN family_members ON family_members.user_unique_id = trip_infos.user_unique_id").
+		Where("family_members.family_unique_id = ?", familyUniqueID).
+		Order("trip_infos.trip_date ASC, trip_infos.trip_unique_id ASC").
+		Find(&trips)
 	if result.Error != nil {
 		return nil, define.NewGeneralError("QueryFamilyTrips", result.Error, define.LangKeyFamilyQueryUnknown)
 	}
@@ -245,7 +272,12 @@ func (h *FamilyHandle) CanReadTrip(tx *gorm.DB, readerUserUniqueID uint32, owner
 		return true, nil
 	}
 	var familyID uint64
-	result := tx.Table("family_members AS reader").Select("reader.family_unique_id").Joins("JOIN family_members AS owner ON owner.family_unique_id = reader.family_unique_id").Where("reader.user_unique_id = ? AND owner.user_unique_id = ?", readerUserUniqueID, ownerUserUniqueID).Limit(1).Scan(&familyID)
+	result := tx.Table("family_members AS reader").
+		Select("reader.family_unique_id").
+		Joins("JOIN family_members AS owner ON owner.family_unique_id = reader.family_unique_id").
+		Where("reader.user_unique_id = ? AND owner.user_unique_id = ?", readerUserUniqueID, ownerUserUniqueID).
+		Limit(1).
+		Scan(&familyID)
 	if result.Error != nil {
 		return false, define.NewGeneralError("CanReadTrip", result.Error, define.LangKeyFamilyQueryUnknown)
 	}

@@ -14,9 +14,24 @@ type MessageHandle struct{}
 
 func NewMessageHandle() *MessageHandle { return new(MessageHandle) }
 
-func (h *MessageHandle) CreateMessage(tx *gorm.DB, familyID, senderID uint64, messageType uint8, title, content, relatedTrip string, recipients []uint32) (define.MessageInfo, *define.GeneralError) {
+func (h *MessageHandle) CreateMessage(
+	tx *gorm.DB,
+	familyID, senderID uint64,
+	messageType uint8,
+	title, content, relatedTrip string,
+	recipients []uint32,
+) (define.MessageInfo, *define.GeneralError) {
 	createdUnixTime := time.Now().Unix()
-	message := define.MessageInfo{MessageIdentity: uuid.NewString(), FamilyUniqueID: familyID, SenderUserUniqueID: uint32(senderID), MessageType: messageType, Title: title, Content: content, RelatedTripIdentity: relatedTrip, CreatedUnixTime: createdUnixTime}
+	message := define.MessageInfo{
+		MessageIdentity:     uuid.NewString(),
+		FamilyUniqueID:      familyID,
+		SenderUserUniqueID:  uint32(senderID),
+		MessageType:         messageType,
+		Title:               title,
+		Content:             content,
+		RelatedTripIdentity: relatedTrip,
+		CreatedUnixTime:     createdUnixTime,
+	}
 	err := tx.Transaction(func(tx *gorm.DB) error {
 		if result := tx.Create(&message); result.Error != nil {
 			return result.Error
@@ -38,11 +53,20 @@ func (h *MessageHandle) CreateMessage(tx *gorm.DB, familyID, senderID uint64, me
 	return message, nil
 }
 
-func (h *MessageHandle) QueryMessagesForUser(tx *gorm.DB, userID uint32, familyID uint64, messageType *uint8, limit int) ([]define.MessageInfo, map[string]define.MessageRecipient, *define.GeneralError) {
+func (h *MessageHandle) QueryMessagesForUser(
+	tx *gorm.DB,
+	userID uint32,
+	familyID uint64,
+	messageType *uint8,
+	limit int,
+) ([]define.MessageInfo, map[string]define.MessageRecipient, *define.GeneralError) {
 	if limit <= 0 {
 		limit = 50
 	}
-	query := tx.Table("message_infos AS m").Select("m.*").Joins("JOIN message_recipients AS r ON r.message_unique_id = m.message_identity").Where("r.recipient_user_unique_id = ? AND m.family_unique_id = ?", userID, familyID)
+	query := tx.Table("message_infos AS m").
+		Select("m.*").
+		Joins("JOIN message_recipients AS r ON r.message_unique_id = m.message_identity").
+		Where("r.recipient_user_unique_id = ? AND m.family_unique_id = ?", userID, familyID)
 	if messageType != nil {
 		query = query.Where("m.message_type = ?", *messageType)
 	}
@@ -91,7 +115,10 @@ func (h *MessageHandle) MarkAllRead(tx *gorm.DB, userID uint32, familyID uint64)
 
 func (h *MessageHandle) CountUnread(tx *gorm.DB, userID uint32, familyID uint64) (int64, *define.GeneralError) {
 	var count int64
-	result := tx.Table("message_recipients AS r").Joins("JOIN message_infos AS m ON m.message_identity = r.message_unique_id").Where("r.recipient_user_unique_id = ? AND m.family_unique_id = ? AND r.read_unix_time = 0", userID, familyID).Count(&count)
+	result := tx.Table("message_recipients AS r").
+		Joins("JOIN message_infos AS m ON m.message_identity = r.message_unique_id").
+		Where("r.recipient_user_unique_id = ? AND m.family_unique_id = ? AND r.read_unix_time = 0", userID, familyID).
+		Count(&count)
 	if result.Error != nil {
 		return 0, define.NewGeneralError("CountUnreadMessages", fmt.Errorf("%w", result.Error), define.LangKeyMessageQueryUnknown)
 	}

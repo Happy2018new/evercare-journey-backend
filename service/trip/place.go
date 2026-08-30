@@ -128,7 +128,17 @@ func HandleNearbyPlace(c *gin.Context) {
 		return
 	}
 	if request.Radius > maxNearbyRadius {
-		respondTripError(c, NearbyPlaceResponse{}, source, invalidTripRequestWithKey(source, define.LangKeyPlaceNearbyRadiusInvalid, "radius must be between 0 and %d metres", maxNearbyRadius))
+		respondTripError(
+			c,
+			NearbyPlaceResponse{},
+			source,
+			invalidTripRequestWithKey(
+				source,
+				define.LangKeyPlaceNearbyRadiusInvalid,
+				"radius must be between 0 and %d metres",
+				maxNearbyRadius,
+			),
+		)
 		return
 	}
 	if generalErr := validatePlaceSearchFilters(source, request.City, request.Category, request.Page, request.PageSize); generalErr != nil {

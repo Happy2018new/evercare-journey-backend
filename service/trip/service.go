@@ -151,7 +151,16 @@ func HandleQueryTrips(c *gin.Context) {
 			return
 		}
 		if !foundNodes {
-			respondTripError(c, QueryTripsResponse{}, source, define.NewGeneralError(source, fmt.Errorf("trip %s has no node resource", tripInfo.TripIdentity), define.LangKeyTripDataCorrupt))
+			respondTripError(
+				c,
+				QueryTripsResponse{},
+				source,
+				define.NewGeneralError(
+					source,
+					fmt.Errorf("trip %s has no node resource", tripInfo.TripIdentity),
+					define.LangKeyTripDataCorrupt,
+				),
+			)
 			return
 		}
 		if nodesErr = validateStoredTripNodes(source, nodes); nodesErr != nil {
@@ -286,7 +295,13 @@ func HandleUpdateTrip(c *gin.Context) {
 				return define.NewGeneralError("HandleUpdateTrip", fmt.Errorf("target trip not found"), define.LangKeyTripQueryNotFoundErr)
 			}
 			if request.ExpectedVersion != nil && *request.ExpectedVersion != tripInfo.CurrentVersion {
-				return invalidTripRequestWithKey("HandleUpdateTrip", define.LangKeyTripVersionConflict, "expected trip version %d but current version is %d", *request.ExpectedVersion, tripInfo.CurrentVersion)
+				return invalidTripRequestWithKey(
+					"HandleUpdateTrip",
+					define.LangKeyTripVersionConflict,
+					"expected trip version %d but current version is %d",
+					*request.ExpectedVersion,
+					tripInfo.CurrentVersion,
+				)
 			}
 			if transitionErr := validateTripStatusTransition("HandleUpdateTrip", tripInfo.TripStatus, request.TripStatus); transitionErr != nil {
 				return transitionErr
@@ -418,7 +433,17 @@ func HandleEditTripNode(c *gin.Context) {
 		return
 	}
 	if request.RequestAction > EditTripNodeRequestActionSetNote {
-		respondTripError(c, EditTripNodeResponse{}, source, invalidTripRequestWithKey(source, define.LangKeyTripNodeActionInvalid, "unsupported request_action %d", request.RequestAction))
+		respondTripError(
+			c,
+			EditTripNodeResponse{},
+			source,
+			invalidTripRequestWithKey(
+				source,
+				define.LangKeyTripNodeActionInvalid,
+				"unsupported request_action %d",
+				request.RequestAction,
+			),
+		)
 		return
 	}
 	if request.RequestAction == EditTripNodeRequestActionAdd || request.RequestAction == EditTripNodeRequestActionUpdate {
@@ -428,7 +453,16 @@ func HandleEditTripNode(c *gin.Context) {
 		}
 	}
 	if request.RequestAction == EditTripNodeRequestActionSetCompleted && request.IsCompleted == nil {
-		respondTripError(c, EditTripNodeResponse{}, source, invalidTripRequestWithKey(source, define.LangKeyTripNodeCompletionInvalid, "is_completed is required when setting node completion"))
+		respondTripError(
+			c,
+			EditTripNodeResponse{},
+			source,
+			invalidTripRequestWithKey(
+				source,
+				define.LangKeyTripNodeCompletionInvalid,
+				"is_completed is required when setting node completion",
+			),
+		)
 		return
 	}
 	if request.RequestAction == EditTripNodeRequestActionSetNote && request.NoteString == nil {
@@ -436,7 +470,10 @@ func HandleEditTripNode(c *gin.Context) {
 		return
 	}
 	noteString := ""
-	if request.NoteString != nil && (request.RequestAction == EditTripNodeRequestActionAdd || request.RequestAction == EditTripNodeRequestActionUpdate || request.RequestAction == EditTripNodeRequestActionSetNote) {
+	if request.NoteString != nil &&
+		(request.RequestAction == EditTripNodeRequestActionAdd ||
+			request.RequestAction == EditTripNodeRequestActionUpdate ||
+			request.RequestAction == EditTripNodeRequestActionSetNote) {
 		noteString, generalErr = parseTripNodeNote(source, *request.NoteString)
 		if generalErr != nil {
 			respondTripError(c, EditTripNodeResponse{}, source, generalErr)
@@ -454,7 +491,18 @@ func HandleEditTripNode(c *gin.Context) {
 			return
 		}
 		if request.ExpectedVersion != nil && *request.ExpectedVersion != tripInfo.CurrentVersion {
-			respondTripError(c, EditTripNodeResponse{}, source, invalidTripRequestWithKey(source, define.LangKeyTripVersionConflict, "expected trip version %d but current version is %d", *request.ExpectedVersion, tripInfo.CurrentVersion))
+			respondTripError(
+				c,
+				EditTripNodeResponse{},
+				source,
+				invalidTripRequestWithKey(
+					source,
+					define.LangKeyTripVersionConflict,
+					"expected trip version %d but current version is %d",
+					*request.ExpectedVersion,
+					tripInfo.CurrentVersion,
+				),
+			)
 			return
 		}
 		nodes, foundNodes, nodesErr := environment.DB.TripHandle().LoadTripNodesWithError(tripInfo.TripIdentity)
@@ -472,7 +520,16 @@ func HandleEditTripNode(c *gin.Context) {
 			return
 		}
 		if int(request.NodeIndex) >= len(nodes) || int(request.MoveToInd) >= len(nodes) {
-			respondTripError(c, EditTripNodeResponse{}, source, invalidTripRequestWithKey(source, define.LangKeyTripNodeIndexInvalid, "node_index and move_to_ind must refer to existing nodes"))
+			respondTripError(
+				c,
+				EditTripNodeResponse{},
+				source,
+				invalidTripRequestWithKey(
+					source,
+					define.LangKeyTripNodeIndexInvalid,
+					"node_index and move_to_ind must refer to existing nodes",
+				),
+			)
 			return
 		}
 		if request.NodeIndex == 0 || int(request.NodeIndex) >= len(nodes)-1 {
@@ -495,7 +552,13 @@ func HandleEditTripNode(c *gin.Context) {
 				return define.NewGeneralError(source, fmt.Errorf("target trip not found"), define.LangKeyTripQueryNotFoundErr)
 			}
 			if request.ExpectedVersion != nil && *request.ExpectedVersion != tripInfo.CurrentVersion {
-				return invalidTripRequestWithKey(source, define.LangKeyTripVersionConflict, "expected trip version %d but current version is %d", *request.ExpectedVersion, tripInfo.CurrentVersion)
+				return invalidTripRequestWithKey(
+					source,
+					define.LangKeyTripVersionConflict,
+					"expected trip version %d but current version is %d",
+					*request.ExpectedVersion,
+					tripInfo.CurrentVersion,
+				)
 			}
 			if request.RequestAction == EditTripNodeRequestActionSetCompleted {
 				if tripInfo.TripStatus != define.TripStatusInProgress {

@@ -152,7 +152,13 @@ func makeFamilyData(tx *gorm.DB, family define.FamilyInfo, currentUserID uint32)
 	if ge != nil {
 		return FamilyData{}, ge
 	}
-	data := FamilyData{FamilyIdentity: family.FamilyIdentity, FamilyName: family.FamilyName, Members: make([]FamilyMemberData, 0, len(members)), PinnedTrips: make([]FamilyPinnedTripData, 0, len(pins)), Trips: make([]FamilyTripData, 0, len(trips))}
+	data := FamilyData{
+		FamilyIdentity: family.FamilyIdentity,
+		FamilyName:     family.FamilyName,
+		Members:        make([]FamilyMemberData, 0, len(members)),
+		PinnedTrips:    make([]FamilyPinnedTripData, 0, len(pins)),
+		Trips:          make([]FamilyTripData, 0, len(trips)),
+	}
 	ownerIdentities := make(map[uint32]string, len(members))
 	for _, member := range members {
 		user, found, userErr := environment.DB.UserHandle().QueryUser(tx, handle.QueryUserActionSearchByUniqueID, member.UserUniqueID)
@@ -162,14 +168,28 @@ func makeFamilyData(tx *gorm.DB, family define.FamilyInfo, currentUserID uint32)
 		if !found {
 			continue
 		}
-		data.Members = append(data.Members, FamilyMemberData{UserIdentity: user.UserIdentity, AccountName: user.AccountName, PermissionLevel: member.PermissionLevel, IsCreator: member.UserUniqueID == family.OwnerUserUniqueID, JoinedUnixTime: member.JoinedUnixTime})
+		data.Members = append(data.Members, FamilyMemberData{
+			UserIdentity:    user.UserIdentity,
+			AccountName:     user.AccountName,
+			PermissionLevel: member.PermissionLevel,
+			IsCreator:       member.UserUniqueID == family.OwnerUserUniqueID,
+			JoinedUnixTime:  member.JoinedUnixTime,
+		})
 		ownerIdentities[member.UserUniqueID] = user.UserIdentity
 		if member.UserUniqueID == currentUserID {
 			data.IsAdmin = member.PermissionLevel == define.FamilyMemberPermissionAdmin
 		}
 	}
 	for _, trip := range trips {
-		data.Trips = append(data.Trips, FamilyTripData{TripIdentity: trip.TripIdentity, TripOwnerUserIdentity: ownerIdentities[trip.UserUniqueID], TripName: trip.TripName, TripDate: trip.TripDate.Format("2006-01-02"), TravelMode: trip.TravelMode, TripStatus: trip.TripStatus, CurrentVersion: trip.CurrentVersion})
+		data.Trips = append(data.Trips, FamilyTripData{
+			TripIdentity:          trip.TripIdentity,
+			TripOwnerUserIdentity: ownerIdentities[trip.UserUniqueID],
+			TripName:              trip.TripName,
+			TripDate:              trip.TripDate.Format("2006-01-02"),
+			TravelMode:            trip.TravelMode,
+			TripStatus:            trip.TripStatus,
+			CurrentVersion:        trip.CurrentVersion,
+		})
 	}
 	for _, pin := range pins {
 		data.PinnedTrips = append(data.PinnedTrips, FamilyPinnedTripData{TripIdentity: pin.TripIdentity, CreatedUnixTime: pin.CreatedUnixTime})
@@ -313,7 +333,11 @@ func HandleGenerateCode(c *gin.Context) {
 		respond(c, GenerateInviteCodeResponse{}, ge)
 		return
 	}
-	c.JSON(http.StatusOK, GenerateInviteCodeResponse{BasicResponseInfo: general.SuccResponseInfo(), InviteCode: code, ExpireUnixTime: time.Now().Unix() + int64(InviteCodeTTL/time.Second)})
+	c.JSON(http.StatusOK, GenerateInviteCodeResponse{
+		BasicResponseInfo: general.SuccResponseInfo(),
+		InviteCode:        code,
+		ExpireUnixTime:    time.Now().Unix() + int64(InviteCodeTTL/time.Second),
+	})
 }
 
 func HandleJoin(c *gin.Context) {

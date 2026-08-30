@@ -92,7 +92,16 @@ func HandleOptimizeTrip(c *gin.Context) {
 		return
 	}
 	if len(nodes) < 2 || len(nodes) > maxOptimizationNodeCount {
-		respondTripError(c, OptimizeTripResponse{}, source, define.NewGeneralError(source, fmt.Errorf("trip must contain between 2 and %d nodes for optimization", maxOptimizationNodeCount), define.LangKeyTripOptimizeNodeCountInvalid))
+		respondTripError(
+			c,
+			OptimizeTripResponse{},
+			source,
+			define.NewGeneralError(
+				source,
+				fmt.Errorf("trip must contain between 2 and %d nodes for optimization", maxOptimizationNodeCount),
+				define.LangKeyTripOptimizeNodeCountInvalid,
+			),
+		)
 		return
 	}
 

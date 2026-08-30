@@ -86,7 +86,15 @@ func validText(source, value string, max int, key string) (string, *define.Gener
 }
 
 func messageData(message define.MessageInfo, recipient define.MessageRecipient, sender *define.UserData) MessageData {
-	result := MessageData{MessageIdentity: message.MessageIdentity, MessageType: message.MessageType, Title: message.Title, Content: message.Content, RelatedTripIdentity: message.RelatedTripIdentity, CreatedUnixTime: message.CreatedUnixTime, Read: recipient.ReadUnixTime > 0}
+	result := MessageData{
+		MessageIdentity:     message.MessageIdentity,
+		MessageType:         message.MessageType,
+		Title:               message.Title,
+		Content:             message.Content,
+		RelatedTripIdentity: message.RelatedTripIdentity,
+		CreatedUnixTime:     message.CreatedUnixTime,
+		Read:                recipient.ReadUnixTime > 0,
+	}
 	if sender != nil {
 		result.SenderUserIdentity = sender.UserIdentity
 		result.SenderAccountName = sender.AccountName
@@ -181,12 +189,27 @@ func HandleSendAnnouncement(c *gin.Context) {
 	for _, item := range members {
 		recipients = append(recipients, item.UserUniqueID)
 	}
-	message, ge := environment.DB.MessageHandle().CreateMessage(environment.DB.Database(), family.FamilyUniqueID, uint64(user.UserUniqueID), define.MessageTypeAnnouncement, title, content, strings.TrimSpace(request.RelatedTripIdentity), recipients)
+	message, ge := environment.DB.MessageHandle().CreateMessage(
+		environment.DB.Database(),
+		family.FamilyUniqueID,
+		uint64(user.UserUniqueID),
+		define.MessageTypeAnnouncement,
+		title,
+		content,
+		strings.TrimSpace(request.RelatedTripIdentity),
+		recipients,
+	)
 	if ge != nil {
 		write(c, SendAnnouncementResponse{}, ge)
 		return
 	}
-	c.JSON(http.StatusOK, SendAnnouncementResponse{BasicResponseInfo: general.SuccResponseInfo(), Message: messageData(message, define.MessageRecipient{RecipientUserUniqueID: user.UserUniqueID, ReadUnixTime: message.CreatedUnixTime}, user)})
+	c.JSON(http.StatusOK, SendAnnouncementResponse{
+		BasicResponseInfo: general.SuccResponseInfo(),
+		Message: messageData(message, define.MessageRecipient{
+			RecipientUserUniqueID: user.UserUniqueID,
+			ReadUnixTime:          message.CreatedUnixTime,
+		}, user),
+	})
 }
 
 func HandleSendSOS(c *gin.Context) {
@@ -220,12 +243,27 @@ func HandleSendSOS(c *gin.Context) {
 	for _, item := range members {
 		recipients = append(recipients, item.UserUniqueID)
 	}
-	message, ge := environment.DB.MessageHandle().CreateMessage(environment.DB.Database(), family.FamilyUniqueID, uint64(user.UserUniqueID), define.MessageTypeSOS, "SOS", content, strings.TrimSpace(request.RelatedTripIdentity), recipients)
+	message, ge := environment.DB.MessageHandle().CreateMessage(
+		environment.DB.Database(),
+		family.FamilyUniqueID,
+		uint64(user.UserUniqueID),
+		define.MessageTypeSOS,
+		"SOS",
+		content,
+		strings.TrimSpace(request.RelatedTripIdentity),
+		recipients,
+	)
 	if ge != nil {
 		write(c, SendSOSResponse{}, ge)
 		return
 	}
-	c.JSON(http.StatusOK, SendSOSResponse{BasicResponseInfo: general.SuccResponseInfo(), Message: messageData(message, define.MessageRecipient{RecipientUserUniqueID: user.UserUniqueID, ReadUnixTime: message.CreatedUnixTime}, user)})
+	c.JSON(http.StatusOK, SendSOSResponse{
+		BasicResponseInfo: general.SuccResponseInfo(),
+		Message: messageData(message, define.MessageRecipient{
+			RecipientUserUniqueID: user.UserUniqueID,
+			ReadUnixTime:          message.CreatedUnixTime,
+		}, user),
+	})
 }
 
 func HandleSendChat(c *gin.Context) {
@@ -259,12 +297,27 @@ func HandleSendChat(c *gin.Context) {
 	for _, item := range members {
 		recipients = append(recipients, item.UserUniqueID)
 	}
-	message, ge := environment.DB.MessageHandle().CreateMessage(environment.DB.Database(), family.FamilyUniqueID, uint64(user.UserUniqueID), define.MessageTypeChat, "", content, strings.TrimSpace(request.RelatedTripIdentity), recipients)
+	message, ge := environment.DB.MessageHandle().CreateMessage(
+		environment.DB.Database(),
+		family.FamilyUniqueID,
+		uint64(user.UserUniqueID),
+		define.MessageTypeChat,
+		"",
+		content,
+		strings.TrimSpace(request.RelatedTripIdentity),
+		recipients,
+	)
 	if ge != nil {
 		write(c, SendChatResponse{}, ge)
 		return
 	}
-	c.JSON(http.StatusOK, SendChatResponse{BasicResponseInfo: general.SuccResponseInfo(), Message: messageData(message, define.MessageRecipient{RecipientUserUniqueID: user.UserUniqueID, ReadUnixTime: message.CreatedUnixTime}, user)})
+	c.JSON(http.StatusOK, SendChatResponse{
+		BasicResponseInfo: general.SuccResponseInfo(),
+		Message: messageData(message, define.MessageRecipient{
+			RecipientUserUniqueID: user.UserUniqueID,
+			ReadUnixTime:          message.CreatedUnixTime,
+		}, user),
+	})
 }
 
 func HandleRead(c *gin.Context) {
