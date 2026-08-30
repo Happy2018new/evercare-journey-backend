@@ -79,6 +79,7 @@ type presetRecord struct {
 }
 
 func main() {
+	environment.Initialize()
 	records, err := loadPreset()
 	if err != nil {
 		log.Fatalf("load preset: %v", err)

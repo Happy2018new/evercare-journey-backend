@@ -15,16 +15,14 @@ import (
 	"time"
 )
 
-const defaultMapServiceAPIKey = "AMAP_SERVICE_API_KEY"
-
 // MapServiceAPIKey is the Amap Web Service key used by all map requests.
 // Applications should replace it during startup/configuration rather than
 // committing a real key to source control.
-var MapServiceAPIKey = defaultMapServiceAPIKey
+var MapServiceAPIKey = "AMAP_SERVICE_API_KEY"
 
 // AmapServiceAccessToken is kept for source compatibility with the earlier
 // utility name. New code should configure MapServiceAPIKey.
-var AmapServiceAccessToken = defaultMapServiceAPIKey
+var AmapServiceAccessToken = MapServiceAPIKey
 
 const (
 	AmapPlaceSearchEndpoint = "https://restapi.amap.com/v3/place/text"

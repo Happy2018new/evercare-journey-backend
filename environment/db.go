@@ -12,7 +12,7 @@ import (
 
 var DB *WrappedDatabase
 
-const (
+var (
 	MySqlDatabaseUser     = "username"
 	MySqlDatabasePassword = "password"
 	MySqlDatabaseAddress  = "127.0.0.1:3306"

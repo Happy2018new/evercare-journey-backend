@@ -9,7 +9,12 @@ import (
 	"gorm.io/gorm"
 )
 
-func init() {
+// Initialize opens the configured databases and runs the schema migration.
+// Callers should configure the exported settings before invoking this function.
+func Initialize() {
+	if DB != nil {
+		return
+	}
 	dsn := fmt.Sprintf(
 		"%s:%s@tcp(%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		MySqlDatabaseUser,
